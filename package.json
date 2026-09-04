@@ -1,0 +1,15 @@
+{
+  "name": "sankat-setu",
+  "private": true,
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

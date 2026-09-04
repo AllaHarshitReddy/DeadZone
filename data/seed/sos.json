@@ -1,0 +1,368 @@
+[
+  {
+    "id": "b1a2c3d4-0001-4a11-8b11-000000000001",
+    "deviceId": "d1a2c3d4-0001-4a11-8b11-100000000001",
+    "reporterName": "Anitha Rao",
+    "reporterPhone": "+91-9800000001",
+    "incidentType": "flood",
+    "priority": "critical",
+    "victimCount": 6,
+    "description": "Ground floor flooded near Koramangala 5th Block, family stuck on terrace, water still rising.",
+    "geo": {
+      "lat": 12.9352,
+      "lng": 77.6245,
+      "accuracyM": 12
+    },
+    "status": "dispatched",
+    "assignedResponderId": "e1a2c3d4-0001-4a11-8b11-200000000001",
+    "createdAt": "2026-09-04T04:57:27.463Z",
+    "updatedAt": "2026-09-04T05:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0002-4a11-8b11-000000000002",
+    "deviceId": "d1a2c3d4-0002-4a11-8b11-100000000002",
+    "reporterName": "Manoj Kumar",
+    "reporterPhone": "+91-9800000002",
+    "incidentType": "building_collapse",
+    "priority": "critical",
+    "victimCount": 12,
+    "description": "Under-construction structure collapsed near Whitefield ITPL Main Road, multiple workers trapped in debris.",
+    "geo": {
+      "lat": 12.9698,
+      "lng": 77.75,
+      "accuracyM": 20
+    },
+    "status": "in_progress",
+    "assignedResponderId": "e1a2c3d4-0002-4a11-8b11-200000000002",
+    "createdAt": "2026-09-04T02:57:27.463Z",
+    "updatedAt": "2026-09-04T06:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0003-4a11-8b11-000000000003",
+    "deviceId": "d1a2c3d4-0003-4a11-8b11-100000000003",
+    "reporterName": "Divya Prasad",
+    "reporterPhone": "+91-9800000003",
+    "incidentType": "medical",
+    "priority": "high",
+    "victimCount": 1,
+    "description": "Elderly resident collapsed, suspected cardiac event, needs immediate evacuation from Electronic City Phase 1.",
+    "geo": {
+      "lat": 12.8452,
+      "lng": 77.6602,
+      "accuracyM": 8
+    },
+    "status": "acknowledged",
+    "createdAt": "2026-09-04T06:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0004-4a11-8b11-000000000004",
+    "deviceId": "d1a2c3d4-0004-4a11-8b11-100000000004",
+    "reporterName": "Suresh Gowda",
+    "reporterPhone": "+91-9800000004",
+    "incidentType": "fire",
+    "priority": "critical",
+    "victimCount": 4,
+    "description": "Kitchen fire spreading to adjoining apartment near Yelahanka New Town, smoke visible from street.",
+    "geo": {
+      "lat": 13.1005,
+      "lng": 77.5963,
+      "accuracyM": 15
+    },
+    "status": "dispatched",
+    "assignedResponderId": "e1a2c3d4-0004-4a11-8b11-200000000004",
+    "createdAt": "2026-09-03T23:57:27.463Z",
+    "updatedAt": "2026-09-04T00:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0005-4a11-8b11-000000000005",
+    "deviceId": "d1a2c3d4-0005-4a11-8b11-100000000005",
+    "reporterName": "Kavya Nair",
+    "reporterPhone": "+91-9800000005",
+    "incidentType": "trapped",
+    "priority": "high",
+    "victimCount": 2,
+    "description": "Two people trapped in a stalled lift after power outage in an HSR Layout apartment block.",
+    "geo": {
+      "lat": 12.9116,
+      "lng": 77.6389,
+      "accuracyM": 10
+    },
+    "status": "resolved",
+    "assignedResponderId": "e1a2c3d4-0005-4a11-8b11-200000000005",
+    "createdAt": "2026-09-03T01:57:27.463Z",
+    "updatedAt": "2026-09-03T03:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0006-4a11-8b11-000000000006",
+    "deviceId": "d1a2c3d4-0006-4a11-8b11-100000000006",
+    "reporterName": "Farhan Sheikh",
+    "reporterPhone": "+91-9800000006",
+    "incidentType": "road_accident",
+    "priority": "high",
+    "victimCount": 3,
+    "description": "Two-vehicle collision on 100 Feet Road, Indiranagar, one victim unconscious.",
+    "geo": {
+      "lat": 12.9719,
+      "lng": 77.6412,
+      "accuracyM": 6
+    },
+    "status": "new",
+    "createdAt": "2026-09-04T07:27:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0007-4a11-8b11-000000000007",
+    "deviceId": "d1a2c3d4-0007-4a11-8b11-100000000007",
+    "reporterName": "Lakshmi Iyer",
+    "reporterPhone": "+91-9800000007",
+    "incidentType": "gas_leak",
+    "priority": "critical",
+    "victimCount": 8,
+    "description": "Strong LPG smell reported across a BTM Layout apartment complex, residents evacuating stairwells.",
+    "geo": {
+      "lat": 12.9166,
+      "lng": 77.6101,
+      "accuracyM": 18
+    },
+    "status": "acknowledged",
+    "createdAt": "2026-09-04T03:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0008-4a11-8b11-000000000008",
+    "deviceId": "d1a2c3d4-0008-4a11-8b11-100000000008",
+    "reporterName": "Rahul Verma",
+    "reporterPhone": "+91-9800000008",
+    "incidentType": "flood",
+    "priority": "medium",
+    "victimCount": 5,
+    "description": "Waterlogged basement parking near Marathahalli Bridge, residents unable to move vehicles or exit safely.",
+    "geo": {
+      "lat": 12.9569,
+      "lng": 77.7011,
+      "accuracyM": 14
+    },
+    "status": "in_progress",
+    "assignedResponderId": "e1a2c3d4-0008-4a11-8b11-200000000008",
+    "createdAt": "2026-09-03T21:57:27.463Z",
+    "updatedAt": "2026-09-04T01:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0009-4a11-8b11-000000000009",
+    "deviceId": "d1a2c3d4-0009-4a11-8b11-100000000009",
+    "reporterName": "Priya Deshmukh",
+    "reporterPhone": "+91-9800000009",
+    "incidentType": "medical",
+    "priority": "low",
+    "victimCount": 1,
+    "description": "Minor fall injury at a Jayanagar 4th Block community hall, requesting first-aid support.",
+    "geo": {
+      "lat": 12.925,
+      "lng": 77.5938,
+      "accuracyM": 5
+    },
+    "status": "closed",
+    "assignedResponderId": "e1a2c3d4-0009-4a11-8b11-200000000009",
+    "createdAt": "2026-09-02T15:57:27.463Z",
+    "updatedAt": "2026-09-02T16:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0010-4a11-8b11-000000000010",
+    "deviceId": "d1a2c3d4-0010-4a11-8b11-100000000010",
+    "reporterName": "Arjun Reddy",
+    "reporterPhone": "+91-9800000010",
+    "incidentType": "building_collapse",
+    "priority": "critical",
+    "victimCount": 15,
+    "description": "Partial wall collapse at a Hebbal warehouse during heavy rain, several workers unaccounted for.",
+    "geo": {
+      "lat": 13.0358,
+      "lng": 77.597,
+      "accuracyM": 25
+    },
+    "status": "dispatched",
+    "assignedResponderId": "e1a2c3d4-0010-4a11-8b11-200000000010",
+    "createdAt": "2026-09-04T01:57:27.463Z",
+    "updatedAt": "2026-09-04T02:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0011-4a11-8b11-000000000011",
+    "deviceId": "d1a2c3d4-0011-4a11-8b11-100000000011",
+    "reporterName": "Sneha Bhat",
+    "reporterPhone": "+91-9800000011",
+    "incidentType": "other",
+    "priority": "low",
+    "victimCount": 2,
+    "description": "Tree fallen across a residential lane in Malleshwaram after storm, blocking exit for two households.",
+    "geo": {
+      "lat": 13.0035,
+      "lng": 77.5709,
+      "accuracyM": 9
+    },
+    "status": "new",
+    "createdAt": "2026-09-04T06:27:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0012-4a11-8b11-000000000012",
+    "deviceId": "d1a2c3d4-0012-4a11-8b11-100000000012",
+    "reporterName": "Vikram Joshi",
+    "reporterPhone": "+91-9800000012",
+    "incidentType": "trapped",
+    "priority": "high",
+    "victimCount": 1,
+    "description": "Elderly man trapped inside a bathroom after door lock jammed during a Banashankari power surge.",
+    "geo": {
+      "lat": 12.925,
+      "lng": 77.5667,
+      "accuracyM": 7
+    },
+    "status": "resolved",
+    "assignedResponderId": "e1a2c3d4-0012-4a11-8b11-200000000012",
+    "createdAt": "2026-09-03T11:57:27.463Z",
+    "updatedAt": "2026-09-03T12:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0013-4a11-8b11-000000000013",
+    "deviceId": "d1a2c3d4-0013-4a11-8b11-100000000013",
+    "reporterName": "Meera Pillai",
+    "reporterPhone": "+91-9800000013",
+    "incidentType": "road_accident",
+    "priority": "medium",
+    "victimCount": 2,
+    "description": "Two-wheeler skid near KR Puram railway underpass during rain, riders conscious but injured.",
+    "geo": {
+      "lat": 13.0088,
+      "lng": 77.6958,
+      "accuracyM": 11
+    },
+    "status": "acknowledged",
+    "createdAt": "2026-09-04T05:27:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0014-4a11-8b11-000000000014",
+    "deviceId": "d1a2c3d4-0014-4a11-8b11-100000000014",
+    "reporterName": "Ganesh Patil",
+    "reporterPhone": "+91-9800000014",
+    "incidentType": "fire",
+    "priority": "high",
+    "victimCount": 3,
+    "description": "Electrical short-circuit fire in a Rajajinagar shop, upper floor residents evacuating.",
+    "geo": {
+      "lat": 12.991,
+      "lng": 77.555,
+      "accuracyM": 13
+    },
+    "status": "dispatched",
+    "assignedResponderId": "e1a2c3d4-0014-4a11-8b11-200000000014",
+    "createdAt": "2026-09-04T00:57:27.463Z",
+    "updatedAt": "2026-09-04T01:27:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0015-4a11-8b11-000000000015",
+    "deviceId": "d1a2c3d4-0015-4a11-8b11-100000000015",
+    "reporterName": "Ayesha Khan",
+    "reporterPhone": "+91-9800000015",
+    "incidentType": "flood",
+    "priority": "high",
+    "victimCount": 9,
+    "description": "Sudden waterlogging near Bellandur Lake outflow trapping residents of a low-lying street.",
+    "geo": {
+      "lat": 12.9257,
+      "lng": 77.6761,
+      "accuracyM": 16
+    },
+    "status": "in_progress",
+    "assignedResponderId": "e1a2c3d4-0015-4a11-8b11-200000000015",
+    "createdAt": "2026-09-03T22:57:27.463Z",
+    "updatedAt": "2026-09-04T04:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0016-4a11-8b11-000000000016",
+    "deviceId": "d1a2c3d4-0016-4a11-8b11-100000000016",
+    "reporterName": "Naveen Kumar",
+    "reporterPhone": "+91-9800000016",
+    "incidentType": "drowning",
+    "priority": "critical",
+    "victimCount": 1,
+    "description": "Child fell into a flooded storm drain near Sarjapur Road, bystanders attempting rescue.",
+    "geo": {
+      "lat": 12.901,
+      "lng": 77.6874,
+      "accuracyM": 10
+    },
+    "status": "acknowledged",
+    "createdAt": "2026-09-04T07:12:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0017-4a11-8b11-000000000017",
+    "deviceId": "d1a2c3d4-0017-4a11-8b11-100000000017",
+    "reporterName": "Shalini Menon",
+    "reporterPhone": "+91-9800000017",
+    "incidentType": "gas_leak",
+    "priority": "medium",
+    "victimCount": 4,
+    "description": "Cylinder leak reported in a Yeshwanthpur industrial estate canteen, area cordoned off by staff.",
+    "geo": {
+      "lat": 13.0284,
+      "lng": 77.554,
+      "accuracyM": 12
+    },
+    "status": "resolved",
+    "assignedResponderId": "e1a2c3d4-0017-4a11-8b11-200000000017",
+    "createdAt": "2026-09-03T16:57:27.463Z",
+    "updatedAt": "2026-09-03T18:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0018-4a11-8b11-000000000018",
+    "deviceId": "d1a2c3d4-0018-4a11-8b11-100000000018",
+    "reporterName": "Ramesh Chandra",
+    "reporterPhone": "+91-9800000018",
+    "incidentType": "medical",
+    "priority": "critical",
+    "victimCount": 1,
+    "description": "Diabetic emergency reported near Ulsoor Lake jogging track, patient unresponsive.",
+    "geo": {
+      "lat": 12.9815,
+      "lng": 77.6224,
+      "accuracyM": 6
+    },
+    "status": "dispatched",
+    "assignedResponderId": "e1a2c3d4-0018-4a11-8b11-200000000018",
+    "createdAt": "2026-09-04T06:42:27.463Z",
+    "updatedAt": "2026-09-04T07:03:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0019-4a11-8b11-000000000019",
+    "deviceId": "d1a2c3d4-0019-4a11-8b11-100000000019",
+    "reporterName": "Nandini Rao",
+    "reporterPhone": "+91-9800000019",
+    "incidentType": "other",
+    "priority": "low",
+    "victimCount": 3,
+    "description": "Residents of a Domlur apartment locked out after a fire-alarm false trigger jammed the stairwell door.",
+    "geo": {
+      "lat": 12.9611,
+      "lng": 77.6387,
+      "accuracyM": 8
+    },
+    "status": "closed",
+    "assignedResponderId": "e1a2c3d4-0019-4a11-8b11-200000000019",
+    "createdAt": "2026-09-02T10:57:27.463Z",
+    "updatedAt": "2026-09-02T11:57:27.463Z"
+  },
+  {
+    "id": "b1a2c3d4-0020-4a11-8b11-000000000020",
+    "deviceId": "d1a2c3d4-0020-4a11-8b11-100000000020",
+    "reporterName": "Imran Ali",
+    "reporterPhone": "+91-9800000020",
+    "incidentType": "building_collapse",
+    "priority": "high",
+    "victimCount": 5,
+    "description": "Compound wall collapsed onto a parked auto-rickshaw stand near Peenya Industrial Area, driver pinned.",
+    "geo": {
+      "lat": 13.028,
+      "lng": 77.52,
+      "accuracyM": 20
+    },
+    "status": "new",
+    "createdAt": "2026-09-04T07:45:27.463Z"
+  }
+]

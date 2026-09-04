@@ -1,0 +1,16 @@
+services:
+  couchdb:
+    image: couchdb:3
+    container_name: sankat-setu-couchdb
+    restart: unless-stopped
+    ports:
+      - "5984:5984"
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: changeme
+      COUCHDB_SINGLE_NODE: "true"
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+
+volumes:
+  couchdb-data:

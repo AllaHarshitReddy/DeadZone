@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.pnpm-store/
+*.log
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.claude/settings.local.json
