@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MeshClient } from '../../services/mesh';
 import { getDatabase } from '../../services/pouchdb';
-import type { Envelope } from '@sankat-setu/schema';
+import { enqueue, dequeue } from '../../services/queue';
+import type { Envelope, SOSRequest } from '@sankat-setu/schema';
 import { RESPONDER_CONFIG, getOrCreateDeviceId, generateUUID } from '../../config';
 
 interface Props {
@@ -17,99 +18,103 @@ const NODES = ['You', 'Relay 1', 'Relay 2', 'Responder'];
 export default function SendingScreen({ severity, people, helpTypes = [], userName = 'Civilian', onDelivered }: Props) {
   const [litNodes, setLitNodes] = useState(1); // "You" starts lit
   const [relayCount, setRelayCount] = useState(0);
-  const [phase, setPhase] = useState<'sending' | 'relaying' | 'delivered' | 'failed'>('sending');
+  const [phase, setPhase] = useState<'queued' | 'sending' | 'relaying' | 'delivered' | 'failed'>('queued');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const severityColor =
     severity === 'critical' ? '#E5484D' : severity === 'urgent' ? '#F5A524' : '#30A46C';
 
-  useEffect(() => {
-    const sendSOS = async () => {
-      try {
-        const deviceId = getOrCreateDeviceId();
-        const meshClient = new MeshClient({
-          meshUrl: RESPONDER_CONFIG.meshUrl,
-          deviceId,
-          onError: (err) => {
-            console.error('[SendingScreen] mesh error:', err);
-            setErrorMsg(err);
-            setPhase('failed');
-          },
-        });
+  // Stable across re-renders and StrictMode's double-mount, so a repeated
+  // send collapses onto the same record instead of creating a second SOS.
+  const sosIdRef = useRef<string>(generateUUID());
 
-        // Connect to mesh
-        console.log('[SendingScreen] connecting to mesh...');
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let meshClient: MeshClient | null = null;
+
+    const sendSOS = async () => {
+      const deviceId = getOrCreateDeviceId();
+      const sosId = sosIdRef.current;
+      const now = new Date().toISOString();
+      const priority =
+        severity === 'critical' ? 'critical' : severity === 'urgent' ? 'high' : 'medium';
+      const geo = { lat: 12.9716, lng: 77.5946 }; // TODO(post-sih): real geolocation
+
+      // Envelope id doubles as the SOS document id, so the same report arriving
+      // by several relay paths collapses to one record on every device.
+      const body: SOSRequest = {
+        id: sosId,
+        deviceId,
+        reporterName: userName,
+        incidentType: 'other',
+        priority,
+        victimCount: people,
+        description: `${helpTypes.join(', ')} needed`,
+        geo,
+        status: 'new',
+        createdAt: now,
+      };
+
+      const envelope: Envelope = {
+        id: sosId,
+        orig: deviceId,
+        ts: now,
+        ttl: 5,
+        prio: priority,
+        type: 'sos',
+        geo,
+        body,
+      };
+
+      // Local write first — this has to succeed with no network at all.
+      try {
+        const db = getDatabase();
+        await db.init();
+        await db.storeSOS(body);
+        enqueue(sosId);
+        setPhase('queued');
+        console.log('[SendingScreen] SOS stored locally:', sosId);
+      } catch (err) {
+        console.error('[SendingScreen] local write failed:', err);
+        setErrorMsg('Could not save the SOS on this device.');
+        setPhase('failed');
+        return;
+      }
+
+      // Then attempt delivery. Failure leaves the SOS queued, never lost.
+      try {
+        meshClient = new MeshClient({ meshUrl: RESPONDER_CONFIG.meshUrl, deviceId });
         await meshClient.connect();
 
-        // Create SOS envelope
-        const envelope: Envelope = {
-          id: generateUUID(),
-          orig: deviceId,
-          ts: new Date().toISOString(),
-          ttl: 5,
-          prio: severity === 'critical' ? 'critical' : severity === 'urgent' ? 'high' : 'medium',
-          type: 'sos',
-          geo: { lat: 12.9716, lng: 77.5946 }, // TODO: real geolocation
-          body: {
-            reporterName: userName,
-            incidentType: 'other',
-            priority: severity === 'critical' ? 'critical' : severity === 'urgent' ? 'high' : 'medium',
-            victimCount: people,
-            description: `${helpTypes.join(', ')} needed`,
-            geo: { lat: 12.9716, lng: 77.5946 },
-            status: 'new',
-            deviceId,
-          },
-        };
-
-        // Send SOS
-        console.log('[SendingScreen] sending SOS envelope...');
         setPhase('sending');
         setLitNodes(1);
         setRelayCount(0);
+        timers.push(setTimeout(() => { setPhase('relaying'); setRelayCount(1); setLitNodes(2); }, 900));
+        timers.push(setTimeout(() => { setRelayCount(2); setLitNodes(3); }, 2000));
 
-        // Simulate relay progression
-        const t1 = setTimeout(() => { setPhase('relaying'); setRelayCount(1); setLitNodes(2); }, 900);
-        const t2 = setTimeout(() => { setRelayCount(2); setLitNodes(3); }, 2000);
-        const t3 = setTimeout(() => { setRelayCount(3); setLitNodes(4); setPhase('delivered'); }, 3400);
-
-        // Actually send the envelope
         await meshClient.sendEnvelope(envelope);
+        dequeue(sosId);
         console.log('[SendingScreen] SOS delivered via mesh');
 
-        // Also store locally so responder can see it
-        try {
-          const db = getDatabase();
-          await db.init();
-          await db.storeSOS(envelope.body as any);
-          console.log('[SendingScreen] SOS stored in local database');
-        } catch (err) {
-          console.warn('[SendingScreen] failed to store SOS locally:', err);
-        }
-
-        // Complete
-        const t4 = setTimeout(() => {
-          meshClient.disconnect();
-          onDelivered();
-        }, 5000);
-
-        return () => {
-          [t1, t2, t3, t4].forEach(clearTimeout);
-          meshClient.disconnect();
-        };
+        timers.push(setTimeout(() => { setRelayCount(3); setLitNodes(4); setPhase('delivered'); }, 3400));
+        timers.push(setTimeout(() => onDelivered(), 5000));
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        console.error('[SendingScreen] failed to send SOS:', errorMsg);
-        setErrorMsg(errorMsg);
-        setPhase('failed');
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn('[SendingScreen] delivery failed, SOS stays queued:', msg);
+        setErrorMsg(msg);
+        setPhase('queued');
+        timers.push(setTimeout(() => onDelivered(), 3000));
       }
     };
 
-    const cleanup = sendSOS();
+    void sendSOS();
+
     return () => {
-      cleanup?.then((fn) => fn?.());
+      timers.forEach(clearTimeout);
+      meshClient?.disconnect();
     };
-  }, [severity, people, helpTypes, userName, onDelivered]);
+    // Runs once per mount; the SOS id is held in a ref so retries stay idempotent.
+  }, []);
 
   return (
     <div
@@ -135,17 +140,20 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
             margin: 0,
           }}
         >
+          {phase === 'queued' && 'SOS saved on this device.'}
           {phase === 'sending' && 'Sending SOS…'}
           {phase === 'relaying' && 'Relaying through mesh…'}
           {phase === 'delivered' && 'SOS delivered.'}
-          {phase === 'failed' && 'Failed to send SOS'}
+          {phase === 'failed' && 'Could not save SOS'}
         </h1>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: phase === 'failed' ? '#E5484D' : '#8A97AC', marginTop: 6 }}>
           {phase === 'failed'
-            ? errorMsg || 'Network error. Please check connection and retry.'
+            ? errorMsg || 'This device could not store the SOS.'
             : phase === 'delivered'
               ? 'A responder has received your alert.'
-              : `Relayed by ${relayCount} nearby device${relayCount !== 1 ? 's' : ''}`}
+              : phase === 'queued'
+                ? 'Saved on this device. Not yet delivered to a responder.'
+                : `Relayed by ${relayCount} nearby device${relayCount !== 1 ? 's' : ''}`}
         </p>
       </div>
 
