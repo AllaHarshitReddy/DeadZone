@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MeshClient } from '../../services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from '../../config';
 import { computeCoverage } from '@sankat-setu/comms';
+import { drainQueue } from '../../services/queue';
 import { PeerTable, type PeerHeartbeatPayload } from '@sankat-setu/comms';
 import type { CoverageStatus } from '../../data/mockData';
 
@@ -47,25 +48,38 @@ export default function MeshStrip({ status: initialStatus, deviceCount: initialC
   const [coverage, setCoverage] = useState<CoverageStatus>(initialStatus ?? 'red');
   const [deviceCount, setDeviceCount] = useState(initialCount ?? 0);
   const [peerTable] = useState(() => new PeerTable());
-  const [meshClient] = useState(() => new MeshClient({
-    meshUrl: RESPONDER_CONFIG.meshUrl,
-    deviceId: getOrCreateDeviceId(),
-    onHeartbeat: (heartbeat) => {
-      peerTable.updatePeer({
-        deviceId: heartbeat.payload.deviceId,
-        isResponder: heartbeat.payload.isResponder,
-        geo: heartbeat.payload.geo,
-      });
+  const meshRef = useRef<MeshClient | null>(null);
+  const [meshClient] = useState(() => {
+    const client = new MeshClient({
+      meshUrl: RESPONDER_CONFIG.meshUrl,
+      deviceId: getOrCreateDeviceId(),
+      onHeartbeat: (heartbeat) => {
+        peerTable.updatePeer({
+          deviceId: heartbeat.payload.deviceId,
+          isResponder: heartbeat.payload.isResponder,
+          geo: heartbeat.payload.geo,
+        });
 
-      // Update coverage status
-      const coverageMeters = computeCoverage(peerTable);
-      const newStatus = coverageMeters.state === 'GREEN' ? 'green' :
-                       coverageMeters.state === 'AMBER' ? 'amber' : 'red';
-      setCoverage(newStatus as CoverageStatus);
-      setDeviceCount(coverageMeters.peersVisible);
-    },
-    onError: (err) => console.error('[MeshStrip] error:', err),
-  }));
+        // Update coverage status
+        const coverageMeters = computeCoverage(peerTable);
+        const newStatus = coverageMeters.state === 'GREEN' ? 'green' :
+                         coverageMeters.state === 'AMBER' ? 'amber' : 'red';
+        setCoverage(newStatus as CoverageStatus);
+        setDeviceCount(coverageMeters.peersVisible);
+      },
+      // Every reconnect flushes whatever was written while the link was down.
+      onStatusChange: (status) => {
+        if (status === 'connected' && meshRef.current) {
+          drainQueue(meshRef.current).catch((err) =>
+            console.error('[MeshStrip] queue drain failed:', err),
+          );
+        }
+      },
+      onError: (err) => console.error('[MeshStrip] error:', err),
+    });
+    meshRef.current = client;
+    return client;
+  });
 
   // Connect to mesh on mount
   useEffect(() => {
