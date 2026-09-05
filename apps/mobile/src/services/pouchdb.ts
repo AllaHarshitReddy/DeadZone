@@ -47,7 +47,7 @@ class StorageDatabase {
     return Array.from(this.docs.values());
   }
 
-  watchChanges(callback: (change: any) => void): () => void {
+  watchChanges(callback: () => void): () => void {
     this.changeListeners.push(callback);
     return () => {
       this.changeListeners = this.changeListeners.filter(l => l !== callback);
@@ -57,7 +57,7 @@ class StorageDatabase {
   private notifyChangeListeners() {
     this.changeListeners.forEach(cb => {
       try {
-        cb({});
+        cb();
       } catch (err) {
         console.error("[db] change listener error:", err);
       }
@@ -71,10 +71,6 @@ class StorageDatabase {
     } catch (err) {
       console.error("[db] failed to persist to localStorage:", err);
     }
-  }
-
-  async syncWithRemote() {
-    return { ok: true };
   }
 }
 
@@ -129,28 +125,10 @@ export class LocalDatabase {
   }
 
   /**
-   * Fetch a single SOS by ID.
-   */
-  async getSOS(id: string): Promise<SOSRequest | null> {
-    if (!this.db) throw new Error("Database not initialized");
-
-    try {
-      return await this.db.get(id);
-    } catch (err) {
-      if ((err as { status: number }).status === 404) {
-        return null;
-      }
-      throw err;
-    }
-  }
-
-  /**
    * Watch for changes in the local database.
    * Useful for real-time UI updates.
    */
-  watchChanges(
-    callback: (change: { id: string; seq: number; deleted?: boolean }) => void
-  ): () => void {
+  watchChanges(callback: () => void): () => void {
     if (!this.db) {
       console.error("[db] database not initialized");
       return () => {};
@@ -161,37 +139,6 @@ export class LocalDatabase {
     } catch (err) {
       console.warn("[db] watchChanges failed:", err);
       return () => {};
-    }
-  }
-
-  /**
-   * Manually sync with a remote CouchDB.
-   * Called when network becomes available.
-   */
-  async syncWithRemote(remoteUrl: string, auth?: { username: string; password: string }): Promise<void> {
-    if (!this.db) throw new Error("Database not initialized");
-
-    try {
-      this.notifySyncStatus({ ...this.syncStatus, inProgress: true });
-
-      const remote = new PouchDB<SOSRequest>(remoteUrl, auth ? { auth } : {});
-      await this.db.sync(remote, { batch_size: 100 });
-
-      this.notifySyncStatus({
-        inProgress: false,
-        lastSync: new Date(),
-        docsQueued: 0,
-      });
-      console.log("[db] sync complete");
-    } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
-      this.notifySyncStatus({
-        inProgress: false,
-        error,
-        docsQueued: this.syncStatus.docsQueued,
-      });
-      console.error("[db] sync failed:", error);
-      throw err;
     }
   }
 
@@ -212,16 +159,6 @@ export class LocalDatabase {
 
   getSyncStatus(): SyncStatus {
     return this.syncStatus;
-  }
-
-  /**
-   * Clear all data (for testing).
-   */
-  async destroy(): Promise<void> {
-    if (this.db) {
-      await this.db.destroy();
-      this.db = null;
-    }
   }
 }
 
