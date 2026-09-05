@@ -25,6 +25,8 @@ export class MeshClient {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private intentionalClose = false;
   private pendingAcks = new Map<string, { resolve: () => void; reject: (err: string) => void; timeout: ReturnType<typeof setTimeout> }>();
 
   constructor(config: MeshClientConfig) {
@@ -34,6 +36,8 @@ export class MeshClient {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        this.teardownSocket();
+        this.intentionalClose = false;
         this.setStatus("connecting");
         this.ws = new WebSocket(this.config.meshUrl);
 
@@ -59,7 +63,9 @@ export class MeshClient {
         this.ws.onclose = () => {
           console.log("[mesh] disconnected");
           this.setStatus("disconnected");
-          this.attemptReconnect();
+          if (!this.intentionalClose) {
+            this.attemptReconnect();
+          }
         };
       } catch (err) {
         const error = `Failed to connect: ${err instanceof Error ? err.message : String(err)}`;
@@ -124,11 +130,30 @@ export class MeshClient {
     }
   }
 
+  /** Detach handlers before closing so an outgoing socket can't drive reconnects or deliver messages. */
+  private teardownSocket() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.ws) {
+      this.ws.onopen = null;
+      this.ws.onmessage = null;
+      this.ws.onerror = null;
+      this.ws.onclose = null;
+      this.ws.close();
+      this.ws = null;
+    }
+  }
+
   private attemptReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       console.log(`[mesh] reconnecting (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-      setTimeout(() => this.connect().catch((err) => console.error(err)), this.reconnectDelay * this.reconnectAttempts);
+      this.reconnectTimer = setTimeout(
+        () => this.connect().catch((err) => console.error(err)),
+        this.reconnectDelay * this.reconnectAttempts,
+      );
     } else {
       console.error("[mesh] max reconnect attempts reached");
       this.setStatus("error");
@@ -136,10 +161,8 @@ export class MeshClient {
   }
 
   disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+    this.intentionalClose = true;
+    this.teardownSocket();
     this.pendingAcks.forEach(({ timeout }) => clearTimeout(timeout));
     this.pendingAcks.clear();
     this.setStatus("disconnected");
