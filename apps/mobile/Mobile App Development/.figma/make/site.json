@@ -1,0 +1,10 @@
+{
+  "description": "This web application provides a comprehensive responder dashboard with real-time mapping, incident management, and logistics tools for efficient emergency response.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

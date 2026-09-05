@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 // ── Civilian UI ──────────────────────────────────────────────────────────────
 import MeshStrip from './components/ui/MeshStrip';
@@ -14,23 +14,22 @@ import CoverageLostScreen from './components/civilian/CoverageLostScreen';
 import ReturnGuidance from './components/civilian/ReturnGuidance';
 import LiveTracking from './components/civilian/LiveTracking';
 import NearbyMesh from './components/civilian/NearbyMesh';
+import ProfileSetup, { type ProfileData } from './components/civilian/ProfileSetup';
 
-// ── Responder UI (unchanged) ─────────────────────────────────────────────────
-import StatusBanner from './components/StatusBanner';
+// ── Responder UI ──────────────────────────────────────────────────────────────
 import MapView from './components/responder/MapView';
 import SOSList from './components/responder/SOSList';
 import TriageBoard from './components/responder/TriageBoard';
 import LogisticsPanel from './components/responder/LogisticsPanel';
 
 import { MOCK_INCIDENTS, COVERAGE_DEVICES, type SOSIncident, type NetworkStatus, type CoverageStatus } from './data/mockData';
-import { getDatabase } from './services/pouchdb';
-import { triageSOSReport } from './services/triage';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Role = 'civilian' | 'responder' | null;
 
 type CivilianView =
   | 'home'
+  | 'profile-setup'
   | 'language'
   | 'profile'
   | 'severity'
@@ -121,54 +120,6 @@ export default function App() {
 
   const devices = COVERAGE_DEVICES[coverageStatus];
 
-  // Load incidents from PouchDB
-  useEffect(() => {
-    const loadIncidents = async () => {
-      try {
-        const db = getDatabase();
-        await db.init();
-        const sosRecords = await db.getAllSOS();
-
-        const triaged: SOSIncident[] = sosRecords.map((sos) => {
-          const triageResult = triageSOSReport(sos);
-          // Show priority level as reason (not medical assumptions)
-          const reason = sos.priority === 'critical' ? 'Critical - needs immediate response' :
-                        sos.priority === 'high' ? 'Urgent - needs quick response' :
-                        'Stable - can wait';
-          return {
-            id: sos.id,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            people: sos.victimCount || 1,
-            needs: [],
-            severity: sos.priority === 'critical' ? 'critical' : sos.priority === 'high' ? 'moderate' : 'minor',
-            triage: (triageResult.category === 'immediate' ? 'RED' :
-                    triageResult.category === 'delayed' ? 'YELLOW' :
-                    triageResult.category === 'minor' ? 'GREEN' : 'BLACK') as any,
-            triageReason: reason,
-            timeAgo: '1 min ago',
-            distance: '1.2 km',
-            location: sos.description || 'Unknown location',
-            hopStatus: 'delivered' as const,
-          };
-        });
-
-        if (triaged.length > 0) {
-          setIncidents(triaged);
-        }
-      } catch (err) {
-        console.error('[App] failed to load incidents:', err);
-      }
-    };
-
-    loadIncidents();
-
-    // Subscribe to DB changes
-    const db = getDatabase();
-    const unsubscribe = db.watchChanges(() => loadIncidents());
-    return unsubscribe;
-  }, []);
-
   /* ── Login ───────────────────────────────────────────────────────────────── */
   if (!user) {
     return (
@@ -178,7 +129,12 @@ export default function App() {
           <div style={{ height: 'max(env(safe-area-inset-top, 0px), 59px)', background: '#0B1220', flexShrink: 0 }} />
           <MeshStrip status={coverageStatus} deviceCount={devices} onPress={cycleCoverage} />
           <LoginScreen
-            onEnter={data => { setUser(data); setRole(data.role); }}
+            onEnter={data => {
+              setUser(data);
+              setRole(data.role);
+              // Civilian goes to profile setup; responder goes straight to dashboard
+              if (data.role === 'civilian') setCivilianView('profile-setup');
+            }}
             onLanguage={() => {}}
           />
         </div>
@@ -206,6 +162,15 @@ export default function App() {
           )}
 
           {/* ── Screens ── */}
+          {civilianView === 'profile-setup' && (
+            <ProfileSetup
+              name={user.name}
+              phone={user.phone}
+              onBack={() => { setUser(null); setRole(null); }}
+              onFinish={(_profile: ProfileData) => setCivilianView('home')}
+            />
+          )}
+
           {civilianView === 'home' && (
             <HomeScreen
               coverageStatus={coverageStatus}
@@ -270,8 +235,6 @@ export default function App() {
             <SendingScreen
               severity={sosData.severity ?? 'critical'}
               people={sosData.people ?? 1}
-              helpTypes={sosData.helpTypes ?? []}
-              userName={user.name}
               onDelivered={() => setCivilianView('live-track')}
             />
           )}
@@ -316,10 +279,9 @@ export default function App() {
     );
   }
 
-  /* ── Responder dashboard (unchanged visual system) ───────────────────────── */
+  /* ── Responder dashboard ──────────────────────────────────────────────────── */
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0A0A0E' }}>
-      <StatusBanner internetStatus={networkStatus} coverageStatus={coverageStatus} onToggle={toggleNetwork} />
       <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
         <nav
           className="flex-shrink-0 flex flex-col items-center py-4 gap-2 border-r border-[#2A2A38]"

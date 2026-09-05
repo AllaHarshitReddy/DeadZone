@@ -5,20 +5,20 @@
 
 export const RESPONDER_CONFIG = {
   // WebSocket mesh endpoint (for sending/receiving SOS)
-  meshUrl: process.env.REACT_APP_MESH_URL || "ws://localhost:4000/mesh",
+  meshUrl: import.meta.env.VITE_MESH_URL || "ws://localhost:4000/mesh",
 
   // Offline maps and tile server
-  mapUrl: process.env.REACT_APP_MAP_URL || "http://localhost:3000",
+  mapUrl: import.meta.env.VITE_MAP_URL || "http://localhost:3000",
 
   // AI chat and weather API
-  aiUrl: process.env.REACT_APP_AI_URL || "http://localhost:4001",
+  aiUrl: import.meta.env.VITE_AI_URL || "http://localhost:4001",
 
   // CouchDB remote (for PouchDB sync when online)
-  couchUrl: process.env.REACT_APP_COUCH_URL || "http://localhost:5984",
+  couchUrl: import.meta.env.VITE_COUCH_URL || "http://localhost:5984",
   couchDb: "sankatsetu",
   couchAuth: {
-    username: process.env.REACT_APP_COUCH_USER || "admin",
-    password: process.env.REACT_APP_COUCH_PASS || "changeme",
+    username: import.meta.env.VITE_COUCH_USER || "admin",
+    password: import.meta.env.VITE_COUCH_PASS || "changeme",
   },
 };
 

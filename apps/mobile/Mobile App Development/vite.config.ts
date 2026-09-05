@@ -3,14 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
-// Load Figma site config if available, otherwise use empty config for local development
-let siteConfiguration: any = {}
-try {
-  siteConfiguration = require('./.figma/make/site.json')
-} catch (e) {
-  // Running outside Figma Make environment - use empty config
-  siteConfiguration = {}
-}
+import siteConfiguration from './.figma/make/site.json'
 
 // Vite config — https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {

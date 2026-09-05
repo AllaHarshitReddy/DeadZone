@@ -1,8 +1,18 @@
 /**
- * Simple localStorage-based database for demo/testing.
- * Replaces PouchDB to avoid browser compatibility issues.
- * Stores SOS records in browser localStorage.
+ * PouchDB service: local database and sync to responder's CouchDB.
+ * Each phone has its own local DB; writes sync to the mesh.
  */
+
+// @ts-ignore - PouchDB types can be inconsistent in browser context
+let PouchDB: any;
+
+// Try to import PouchDB, fall back to memory storage if it fails
+try {
+  PouchDB = require("pouchdb").default || require("pouchdb");
+} catch (e) {
+  console.warn("[db] PouchDB import failed, using memory storage:", e);
+  PouchDB = null;
+}
 
 import type { SOSRequest } from "@sankat-setu/schema";
 
@@ -14,63 +24,32 @@ export interface SyncStatus {
 }
 
 /**
- * LocalStorage-based database.
- * Simple, reliable, works everywhere.
+ * In-memory database fallback when PouchDB is unavailable.
+ * Stores SOS records in memory for dev/testing.
  */
-class StorageDatabase {
-  private dbKey = "sankatsetu_sos_db";
-  private docs = new Map<string, SOSRequest>();
-  private changeListeners: Array<() => void> = [];
+class MemoryDatabase {
+  private docs = new Map<string, any>();
 
   async init() {
-    try {
-      const stored = localStorage.getItem(this.dbKey);
-      if (stored) {
-        const docs = JSON.parse(stored);
-        this.docs = new Map(Object.entries(docs));
-      }
-      console.log("[db] initialized localStorage database with", this.docs.size, "documents");
-    } catch (err) {
-      console.warn("[db] failed to load from localStorage:", err);
-      this.docs.clear();
-    }
+    console.log("[db] initialized memory database (fallback)");
   }
 
   async storeSOS(sos: SOSRequest) {
     this.docs.set(sos.id, sos);
-    this.persistToDisk();
-    this.notifyChangeListeners();
-    console.log("[db] stored SOS:", sos.id, "total docs:", this.docs.size);
+    console.log("[db] stored SOS in memory:", sos.id);
   }
 
   async getAllSOS(): Promise<SOSRequest[]> {
     return Array.from(this.docs.values());
   }
 
-  watchChanges(callback: (change: any) => void): () => void {
-    this.changeListeners.push(callback);
-    return () => {
-      this.changeListeners = this.changeListeners.filter(l => l !== callback);
-    };
+  watchChanges(callback: (sos: SOSRequest[]) => void) {
+    // For memory DB, just return a no-op unwatch function
+    return () => {};
   }
 
-  private notifyChangeListeners() {
-    this.changeListeners.forEach(cb => {
-      try {
-        cb({});
-      } catch (err) {
-        console.error("[db] change listener error:", err);
-      }
-    });
-  }
-
-  private persistToDisk() {
-    try {
-      const data = Object.fromEntries(this.docs);
-      localStorage.setItem(this.dbKey, JSON.stringify(data));
-    } catch (err) {
-      console.error("[db] failed to persist to localStorage:", err);
-    }
+  onSyncStatusChange(callback: (status: SyncStatus) => void) {
+    return () => {};
   }
 
   async syncWithRemote() {
@@ -79,22 +58,33 @@ class StorageDatabase {
 }
 
 export class LocalDatabase {
-  private db: StorageDatabase | null = null;
+  private db: any = null;
+  private isMemory = false;
   private syncStatus: SyncStatus = { inProgress: false, docsQueued: 0 };
   private syncListeners: ((status: SyncStatus) => void)[] = [];
 
   /**
-   * Initialize the local database using localStorage.
-   * Simple, reliable, no external dependencies.
+   * Initialize the local database.
+   * Runs in IndexedDB (browser) — no server needed for local storage.
+   * Falls back to memory storage if PouchDB unavailable.
    */
   async init(): Promise<void> {
     try {
-      this.db = new StorageDatabase();
+      if (!PouchDB) {
+        console.warn("[db] PouchDB not available, using memory storage");
+        this.db = new MemoryDatabase();
+        this.isMemory = true;
+      } else {
+        // @ts-ignore
+        this.db = new PouchDB("sankatsetu_local");
+      }
       await this.db.init();
-      console.log("[db] initialized StorageDatabase");
+      console.log("[db] initialized database");
     } catch (err) {
-      console.error("[db] failed to initialize database:", err);
-      throw err;
+      console.warn("[db] PouchDB init failed, falling back to memory:", err);
+      this.db = new MemoryDatabase();
+      this.isMemory = true;
+      await this.db.init();
     }
   }
 
@@ -106,11 +96,25 @@ export class LocalDatabase {
     if (!this.db) throw new Error("Database not initialized");
 
     try {
-      await this.db.storeSOS(sos);
+      if (this.isMemory) {
+        // Memory database
+        await this.db.storeSOS(sos);
+      } else {
+        // PouchDB
+        await this.db.put({
+          ...sos,
+          _id: sos.id, // UUID is the primary key
+        });
+      }
       console.log("[db] stored SOS:", sos.id);
       this.notifySyncStatus({ ...this.syncStatus, docsQueued: (this.syncStatus.docsQueued || 0) + 1 });
     } catch (err) {
-      console.warn("[db] error storing SOS:", err);
+      if (!this.isMemory && (err as { status: number }).status === 409) {
+        // Document already exists — idempotent, not an error
+        console.log("[db] SOS already exists (idempotent):", sos.id);
+      } else {
+        console.warn("[db] error storing SOS:", err);
+      }
     }
   }
 
@@ -121,7 +125,14 @@ export class LocalDatabase {
     if (!this.db) throw new Error("Database not initialized");
 
     try {
-      return await this.db.getAllSOS();
+      if (this.isMemory) {
+        return await this.db.getAllSOS();
+      } else {
+        const result = await this.db.allDocs({ include_docs: true });
+        return result.rows
+          .filter((row) => !("error" in row) && row.doc)
+          .map((row) => row.doc as SOSRequest);
+      }
     } catch (err) {
       console.error("[db] failed to fetch all SOS:", err);
       return [];
@@ -156,12 +167,15 @@ export class LocalDatabase {
       return () => {};
     }
 
-    try {
-      return this.db.watchChanges(callback);
-    } catch (err) {
-      console.warn("[db] watchChanges failed:", err);
-      return () => {};
-    }
+    const feed = this.db.changes({ live: true, include_docs: false }).on("change", (change) => {
+      callback({
+        id: change.id,
+        seq: change.seq,
+        deleted: change.deleted,
+      });
+    });
+
+    return () => feed.cancel();
   }
 
   /**

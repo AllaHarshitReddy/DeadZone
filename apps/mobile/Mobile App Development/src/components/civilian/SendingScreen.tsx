@@ -1,115 +1,28 @@
 import { useEffect, useState } from 'react';
-import { MeshClient } from '../../services/mesh';
-import { getDatabase } from '../../services/pouchdb';
-import type { Envelope } from '@sankat-setu/schema';
-import { RESPONDER_CONFIG, getOrCreateDeviceId, generateUUID } from '../../config';
 
 interface Props {
   severity: string;
   people: number;
-  helpTypes?: string[];
-  userName?: string;
   onDelivered: () => void;
 }
 
 const NODES = ['You', 'Relay 1', 'Relay 2', 'Responder'];
 
-export default function SendingScreen({ severity, people, helpTypes = [], userName = 'Civilian', onDelivered }: Props) {
+export default function SendingScreen({ severity, people, onDelivered }: Props) {
   const [litNodes, setLitNodes] = useState(1); // "You" starts lit
   const [relayCount, setRelayCount] = useState(0);
-  const [phase, setPhase] = useState<'sending' | 'relaying' | 'delivered' | 'failed'>('sending');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'sending' | 'relaying' | 'delivered'>('sending');
 
   const severityColor =
     severity === 'critical' ? '#E5484D' : severity === 'urgent' ? '#F5A524' : '#30A46C';
 
   useEffect(() => {
-    const sendSOS = async () => {
-      try {
-        const deviceId = getOrCreateDeviceId();
-        const meshClient = new MeshClient({
-          meshUrl: RESPONDER_CONFIG.meshUrl,
-          deviceId,
-          onError: (err) => {
-            console.error('[SendingScreen] mesh error:', err);
-            setErrorMsg(err);
-            setPhase('failed');
-          },
-        });
-
-        // Connect to mesh
-        console.log('[SendingScreen] connecting to mesh...');
-        await meshClient.connect();
-
-        // Create SOS envelope
-        const envelope: Envelope = {
-          id: generateUUID(),
-          orig: deviceId,
-          ts: new Date().toISOString(),
-          ttl: 5,
-          prio: severity === 'critical' ? 'critical' : severity === 'urgent' ? 'high' : 'medium',
-          type: 'sos',
-          geo: { lat: 12.9716, lng: 77.5946 }, // TODO: real geolocation
-          body: {
-            reporterName: userName,
-            incidentType: 'other',
-            priority: severity === 'critical' ? 'critical' : severity === 'urgent' ? 'high' : 'medium',
-            victimCount: people,
-            description: `${helpTypes.join(', ')} needed`,
-            geo: { lat: 12.9716, lng: 77.5946 },
-            status: 'new',
-            deviceId,
-          },
-        };
-
-        // Send SOS
-        console.log('[SendingScreen] sending SOS envelope...');
-        setPhase('sending');
-        setLitNodes(1);
-        setRelayCount(0);
-
-        // Simulate relay progression
-        const t1 = setTimeout(() => { setPhase('relaying'); setRelayCount(1); setLitNodes(2); }, 900);
-        const t2 = setTimeout(() => { setRelayCount(2); setLitNodes(3); }, 2000);
-        const t3 = setTimeout(() => { setRelayCount(3); setLitNodes(4); setPhase('delivered'); }, 3400);
-
-        // Actually send the envelope
-        await meshClient.sendEnvelope(envelope);
-        console.log('[SendingScreen] SOS delivered via mesh');
-
-        // Also store locally so responder can see it
-        try {
-          const db = getDatabase();
-          await db.init();
-          await db.storeSOS(envelope.body as any);
-          console.log('[SendingScreen] SOS stored in local database');
-        } catch (err) {
-          console.warn('[SendingScreen] failed to store SOS locally:', err);
-        }
-
-        // Complete
-        const t4 = setTimeout(() => {
-          meshClient.disconnect();
-          onDelivered();
-        }, 5000);
-
-        return () => {
-          [t1, t2, t3, t4].forEach(clearTimeout);
-          meshClient.disconnect();
-        };
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        console.error('[SendingScreen] failed to send SOS:', errorMsg);
-        setErrorMsg(errorMsg);
-        setPhase('failed');
-      }
-    };
-
-    const cleanup = sendSOS();
-    return () => {
-      cleanup?.then((fn) => fn?.());
-    };
-  }, [severity, people, helpTypes, userName, onDelivered]);
+    const t1 = setTimeout(() => { setPhase('relaying'); setRelayCount(1); setLitNodes(2); }, 900);
+    const t2 = setTimeout(() => { setRelayCount(2); setLitNodes(3); }, 2000);
+    const t3 = setTimeout(() => { setRelayCount(3); setLitNodes(4); setPhase('delivered'); }, 3400);
+    const t4 = setTimeout(() => onDelivered(), 5000);
+    return () => [t1, t2, t3, t4].forEach(clearTimeout);
+  }, []);
 
   return (
     <div
@@ -130,7 +43,7 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
             fontFamily: "'Inter', sans-serif",
             fontSize: '28px',
             fontWeight: 600,
-            color: phase === 'failed' ? '#E5484D' : '#E6EAF2',
+            color: '#E6EAF2',
             lineHeight: 1.2,
             margin: 0,
           }}
@@ -138,14 +51,11 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
           {phase === 'sending' && 'Sending SOS…'}
           {phase === 'relaying' && 'Relaying through mesh…'}
           {phase === 'delivered' && 'SOS delivered.'}
-          {phase === 'failed' && 'Failed to send SOS'}
         </h1>
-        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: phase === 'failed' ? '#E5484D' : '#8A97AC', marginTop: 6 }}>
-          {phase === 'failed'
-            ? errorMsg || 'Network error. Please check connection and retry.'
-            : phase === 'delivered'
-              ? 'A responder has received your alert.'
-              : `Relayed by ${relayCount} nearby device${relayCount !== 1 ? 's' : ''}`}
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: '#8A97AC', marginTop: 6 }}>
+          {phase === 'delivered'
+            ? 'A responder has received your alert.'
+            : `Relayed by ${relayCount} nearby device${relayCount !== 1 ? 's' : ''}`}
         </p>
       </div>
 

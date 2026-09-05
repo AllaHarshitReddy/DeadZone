@@ -12,9 +12,9 @@ import type { GeoPoint } from "@sankat-setu/schema";
  * See docs/decisions.md: multi-hop beyond one relay is on the cut list.
  */
 export const PeerSchema = z.object({
-  deviceId: z.string().uuid(),
-  lastSeen: z.iso.datetime(),
-  rssi: z.number().optional(), // received signal strength, BLE only
+  deviceId: z.string(),
+  lastSeen: z.string(),
+  rssi: z.number().optional(),
   isResponder: z.boolean(),
   hopsToResponder: z.number().int().nonnegative().optional(),
   geo: z.object({ lat: z.number(), lng: z.number() }).optional(),
