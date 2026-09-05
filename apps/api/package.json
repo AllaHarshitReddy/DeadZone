@@ -1,0 +1,26 @@
+{
+  "name": "@sankat-setu/api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx src/server.ts",
+    "setup-db": "tsx scripts/setup-db.ts",
+    "seed": "tsx scripts/seed.ts",
+    "sync-test": "tsx scripts/sync-test.ts"
+  },
+  "dependencies": {
+    "@sankat-setu/comms": "workspace:*",
+    "@sankat-setu/schema": "workspace:*",
+    "express": "^5.2.1",
+    "pouchdb": "^9.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0",
+    "@types/pouchdb": "^6.4.2",
+    "@types/ws": "^8.5.14",
+    "tsx": "^4.19.2"
+  }
+}

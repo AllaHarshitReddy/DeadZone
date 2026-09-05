@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sankat Setu Offline Map</title>
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; }
+    #map { width: 100vw; height: 100vh; }
+    .info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 100;
+      max-width: 300px;
+      font-size: 12px;
+    }
+    .sos-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: #ff3333;
+      border: 2px solid white;
+      border-radius: 50%;
+      font-weight: bold;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .sos-marker:hover {
+      background: #ff1111;
+      transform: scale(1.1);
+    }
+    .popup {
+      background: white;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      max-width: 200px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="info">
+    <h3>Sankat Setu</h3>
+    <p>Offline Emergency Map</p>
+    <p id="status">Loading map...</p>
+    <p style="margin-top: 8px; font-size: 10px; color: #666;">
+      PMTiles: city.pmtiles<br>
+      Style: Local glyphs + sprites<br>
+      Mode: Offline-first
+    </p>
+  </div>
+
+  <script>
+    // Register PMTiles protocol
+    let protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+
+    // Initialize map
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: './style.json',
+      center: [77.5946, 12.9716], // Bengaluru
+      zoom: 11,
+      pitch: 0,
+      bearing: 0
+    });
+
+    const statusEl = document.getElementById('status');
+
+    // Load SOS data from seed file
+    let sosData = [];
+    fetch('/../../data/seed/sos.json')
+      .then(r => r.json())
+      .then(data => {
+        sosData = data;
+        addSosMarkers();
+        statusEl.innerHTML = `Loaded ${sosData.length} SOS reports.<br>Offline map ready.`;
+      })
+      .catch(err => {
+        statusEl.innerHTML = `Error loading SOS data: ${err.message}`;
+        console.error(err);
+      });
+
+    // Add SOS markers to map
+    function addSosMarkers() {
+      sosData.forEach((sos, idx) => {
+        if (!sos.geo || !sos.geo.lat || !sos.geo.lng) return;
+
+        // Create marker element
+        const el = document.createElement('div');
+        el.className = 'sos-marker';
+        el.textContent = idx + 1;
+        el.title = sos.description || 'SOS';
+
+        // Add marker to map
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([sos.geo.lng, sos.geo.lat])
+          .addTo(map);
+
+        // Show popup on click
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const popup = new maplibregl.Popup({ offset: 25 })
+            .setHTML(`
+              <div class="popup">
+                <strong>${sos.incidentType}</strong><br>
+                Priority: ${sos.priority}<br>
+                Victims: ${sos.victimCount}<br>
+                <small>${sos.description}</small>
+              </div>
+            `)
+            .addTo(map);
+          marker.togglePopup();
+        });
+      });
+    }
+
+    // Log when style loads
+    map.on('style.load', () => {
+      console.log('Map style loaded successfully');
+    });
+
+    map.on('error', (err) => {
+      console.error('Map error:', err);
+      statusEl.innerHTML = 'Map error: ' + err.message;
+    });
+  </script>
+</body>
+</html>

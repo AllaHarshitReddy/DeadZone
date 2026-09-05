@@ -1,0 +1,12 @@
+{
+  "name": "@sankat-setu/dashboard",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "node src/server.js",
+    "verify-offline": "node scripts/verify-offline.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

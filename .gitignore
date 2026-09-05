@@ -4,6 +4,15 @@ dist/
 *.log
 .env
 .env.*
+!**/.env.example
 .DS_Store
 Thumbs.db
 .claude/settings.local.json
+
+# Local PouchDB storage written by apps/api's scripts (setup-db/seed/sync-test).
+# Runtime state, not source -- data/seed/ is the committed fictional seed data.
+apps/api/.data/
+
+# Cached live Open-Meteo forecast (apps/ai/scripts/fetch-weather.ts).
+# A live-API snapshot, not the fictional seed data under repo-root data/seed/.
+apps/ai/data/

@@ -1,0 +1,81 @@
+{
+  "version": 8,
+  "name": "Sankat Setu Offline Map",
+  "metadata": {
+    "mapbox:uiControlsPosition": {
+      "zoom": "top-left",
+      "attribution": "top-right"
+    }
+  },
+  "sources": {
+    "protomaps": {
+      "type": "vector",
+      "url": "pmtiles://./city.pmtiles"
+    }
+  },
+  "glyphs": "./glyphs/{fontstack}/{range}.pbf",
+  "sprite": "./sprites/sprite",
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f0ede5"
+      }
+    },
+    {
+      "id": "landuse",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "paint": {
+        "fill-color": "#e0d5c7"
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#b3d9ff"
+      }
+    },
+    {
+      "id": "roads",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "paint": {
+        "line-color": "#ffffff",
+        "line-width": 1
+      }
+    },
+    {
+      "id": "buildings",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "buildings",
+      "paint": {
+        "fill-color": "#d0c9c0",
+        "fill-opacity": 0.6
+      }
+    },
+    {
+      "id": "labels",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "places",
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-font": ["Open Sans Semibold", "Arial Unicode MS Regular"],
+        "text-size": 12
+      },
+      "paint": {
+        "text-color": "#333333",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1
+      }
+    }
+  ]
+}
