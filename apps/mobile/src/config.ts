@@ -3,9 +3,22 @@
  * Override via environment variables or update here for local testing.
  */
 
+function getMeshUrl(): string {
+  if (import.meta.env.VITE_MESH_URL) {
+    return import.meta.env.VITE_MESH_URL;
+  }
+  // Use same host and port as the frontend (Vite proxies to localhost:4000)
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const host = window.location.hostname;
+  const port = window.location.port;
+  return `${protocol}://${host}${port ? `:${port}` : ''}/mesh`;
+}
+
 export const RESPONDER_CONFIG = {
   // WebSocket mesh endpoint (for sending/receiving SOS)
-  meshUrl: import.meta.env.VITE_MESH_URL || "ws://localhost:4000/mesh",
+  get meshUrl() {
+    return getMeshUrl();
+  },
 
   // Offline maps and tile server
   mapUrl: import.meta.env.VITE_MAP_URL || "http://localhost:3000",
