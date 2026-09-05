@@ -123,15 +123,47 @@ This is your strongest argument. Do not rush it.
 
 ### Beat 5 · Ask the weather (20s)
 
-Responder view → weather question. Something like *"is it safe to move people
-tonight?"*
+**Ask two questions, in this order. The second one is the better moment.**
 
-> "That is a 3.8-billion-parameter model running on this laptop. No internet.
-> The forecast numbers are computed deterministically — the model only phrases
-> them. It cannot invent a rainfall figure."
+**First, a question it can answer:**
 
-Watch the clock. If it has not answered in four seconds, keep talking; do not
-stare at the screen with the judge.
+> *"How much rain is expected in the next 24 hours?"*
+
+Verified answer: *"0.4 mm of total precipitation is expected in the next 24
+hours."* — 1.4s.
+
+> "That is a 3.8-billion-parameter model running on this laptop with no
+> internet. The number is computed deterministically from cached forecast data
+> — the model only phrases it. It cannot invent a rainfall figure."
+
+**Then, deliberately ask something it does not have:**
+
+> *"What is the wind speed?"*
+
+Verified answer: *"I don't have data for that."* — 0.95s.
+
+> "There is no wind data in the cache, so it says so. It does not guess. In a
+> disaster, a confident wrong answer is worse than no answer."
+
+That refusal is the strongest thing this feature does. Do not skip it — an
+assistant that admits ignorance is a far better argument than one that always
+has something to say.
+
+**Questions verified to answer well** (all under 2s warm):
+
+| Question | Answers with |
+|---|---|
+| How much rain is expected in the next 24 hours? | total precipitation in mm |
+| When is the heaviest rain expected? | peak hour, with time and mm |
+| What is the worst weather expected? | the worst condition in the window |
+| What is the risk level right now? | the IMD risk band |
+
+**Questions that will refuse** — only use these when you *want* the refusal:
+anything about wind or temperature (not in the cached object), anything phrased
+as a judgment call (*"is it safe to move people tonight?"*), and *"will it rain
+tonight?"* (the model does not map "tonight" onto the forecast window).
+
+Rehearse with the exact wording above. Improvised phrasing gets refusals.
 
 ### Beat 6 · Nothing is lost (15s)
 
@@ -158,8 +190,13 @@ correctly — the record is safe. Say so out loud, it is a feature:
 > "No relay in range. It is holding it. Watch what happens when one appears."
 Then reconnect and let it drain. This is a better demo than the happy path.
 
-**Weather question hangs.** Model was not warm. Move on to another beat and come
-back. Do not wait in silence.
+**Weather question hangs.** Model was not warm. Cold start measured at 5.8s
+against 1.4s warm, so this is what the pre-flight warm-up call prevents. Move on
+to another beat and come back; do not wait in silence.
+
+**Weather answers "I don't have data for that."** Expected for anything outside
+the cached object. Use it — see Beat 5 — or re-ask with one of the verified
+questions.
 
 **Map renders but has no labels.** Style is reaching for remote fonts. Not
 fixable live. Narrate over it and move on.
@@ -180,17 +217,23 @@ Updated 5 Sep. **Do not demo an unproven beat cold.**
 | Queue drains on reconnect | ✅ Proven | 10/10 tests, plus live round trip against the server |
 | Same message ID collapses duplicates | ✅ Proven | Sent twice over a real socket, one document resulted |
 | Phone → laptop over LAN | 🟡 Simulated | Full WS round trip over the LAN IP; **not yet run from real phone hardware** |
-| Weather answer offline | 🟡 Untested | Code complete and reviewed; model only just downloaded |
+| Weather answer offline | ✅ Proven | Ran end to end on `phi4-mini`; 1.0-1.7s warm, against a 4s target |
 | Sync to CouchDB | 🔴 Unproven | Docker Desktop will not start; last hop never exercised |
 | Offline map with labels | 🔴 Not built | `data/tiles/glyphs` and `sprites` are empty |
 | Three-device relay | 🔴 Not built | Needs a second phone; a nice-to-have, not a success criterion |
 
 ### The honest read
 
-Criteria 1 and 3 are in good shape. Criterion 2 is written and reviewed but has
-never once been executed end to end. Criterion 4 is half proven — the phone's
+Criteria 1, 2 and 3 are in good shape. Criterion 4 is half proven — the phone's
 queue drains and that is tested, but the server → CouchDB hop has never run
 because Docker is down.
+
+**One judgement call to make before the 10th.** The weather cache holds real
+Open-Meteo data for Bengaluru, and right now that is 0.4 mm and GREEN. A calm
+forecast makes a weak demo for a disaster-response app: the risk-band logic
+never shows its teeth. Either refresh the cache near the date and take what the
+weather gives you, or prepare a severe-weather cache and say plainly that it is
+illustrative. Do not quietly present fabricated weather as live data.
 
 The offline map is the only piece that is genuinely absent, and it is not one of
 the four success criteria. If time runs short, cut the map before you cut
