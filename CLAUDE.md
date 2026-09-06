@@ -67,7 +67,7 @@ Decided deliberately. If a task seems to need one of these, stop and ask rather 
 - OSRM routing — straight-line haversine distance and bearing
 - Allocation optimisation / Hungarian algorithm — greedy nearest-available only
 - Ed25519 signing — unsigned envelopes for now
-- Multi-hop beyond one relay — TTL exists in the envelope, but only A → B → C is demoed
+- Relaying of any kind — there is no device-to-device hop at all. Each phone holds a direct WebSocket to the command node. `ttl` exists on the envelope and is never decremented or acted on.
 - Sophisticated conflict resolution — plain PouchDB sync, last-write-wins
 - Design polish — unstyled but legible; visual design arrives from outside the build team
 

@@ -40,10 +40,12 @@ async function main() {
   const lanIp = getLanIp() ?? "localhost";
   const selfDeviceId = process.env.SELF_DEVICE_ID ?? "responder-laptop";
 
+  const selfGeo = { lat: 12.9716, lng: 77.5946 }; // TODO(post-sih): from actual device location
+
   peerTable.startHeartbeat({
     deviceId: selfDeviceId,
     isResponder: true,
-    geo: { lat: 12.9716, lng: 77.5946 }, // TODO(post-sih): from actual device location
+    geo: selfGeo,
   });
 
   // Attach WebSocket mesh server
@@ -52,6 +54,7 @@ async function main() {
     peerTable,
     selfDeviceId,
     selfIsResponder: true,
+    selfGeo,
   });
 
   const PORT = Number(process.env.PORT ?? 4000);

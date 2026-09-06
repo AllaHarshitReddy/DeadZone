@@ -28,6 +28,8 @@ export interface MeshServerConfig {
   peerTable: PeerTable;
   selfDeviceId: string;
   selfIsResponder: boolean;
+  /** Same value startHeartbeat() broadcasts, so the greeting below matches. */
+  selfGeo?: { lat: number; lng: number };
 }
 
 export function attachMeshServer(httpServer: HttpServer, config: MeshServerConfig): WebSocketServer {
@@ -54,6 +56,17 @@ async function handleClient(ws: WebSocket, config: MeshServerConfig) {
   };
   config.peerTable.onHeartbeat((heartbeat) => {
     sendHeartbeat(heartbeat.payload);
+  });
+
+  // Greet immediately. The interval broadcast only fires every 10s, so without
+  // this a freshly-connected client has no observation to reason about and its
+  // coverage meter correctly -- but unhelpfully -- reads RED until the next
+  // tick. This changes nothing about the interval or the coverage thresholds;
+  // it just stops the client's first evaluation happening in the dark.
+  sendHeartbeat({
+    deviceId: config.selfDeviceId,
+    isResponder: config.selfIsResponder,
+    geo: config.selfGeo,
   });
 
   ws.on("message", async (raw: Buffer) => {

@@ -147,7 +147,7 @@ export default function MeshStrip({ status: initialStatus, deviceCount: initialC
             borderRadius: '50%',
             background: cfg.dot,
             flexShrink: 0,
-            animation: status === 'red' ? 'dot-blink 1.2s ease-in-out infinite' : 'none',
+            animation: coverage === 'red' ? 'dot-blink 1.2s ease-in-out infinite' : 'none',
           }}
         />
         <span

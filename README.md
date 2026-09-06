@@ -44,9 +44,18 @@ packages/
   ui/           design tokens — placeholder, empty
 data/
   seed/         fictional demo records (data/seed/sos.json)
-docs/           decisions, strategy, sprint notes
+docs/           decisions, demo runbook, approved pitch language
 infra/          docker-compose (CouchDB)
 ```
+
+## Documentation
+
+| Document | What it is |
+|---|---|
+| [`CLAUDE.md`](CLAUDE.md) | Standing context: stack, settled decisions, cut list, guardrails. Read first. |
+| [`docs/decisions.md`](docs/decisions.md) | What was deliberately cut for the 10 September 2026 demo, and why. |
+| [`docs/demo-runbook.md`](docs/demo-runbook.md) | The ninety-second demo: pre-flight, beat-by-beat script, and a proven/unproven status table. |
+| [`docs/pitch-transport-coverage.md`](docs/pitch-transport-coverage.md) | Approved wording for how devices talk and what the coverage meter means, plus the claims that must not be made. |
 
 ## Typecheck
 
