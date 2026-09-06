@@ -25,6 +25,24 @@ const CFG = {
   red:   { dot: '#E5484D', label: 'No relay path' },
 };
 
+/**
+ * How often coverage is re-evaluated. computeCoverage measures elapsed time
+ * since the responder's last heartbeat, so it has to be called on a clock —
+ * calling it only when a heartbeat *arrives* pins elapsed at ~0 and the
+ * AMBER/RED branches can never be reached. Thresholds themselves live in
+ * packages/comms/src/coverage.ts and are not changed here.
+ */
+const COVERAGE_POLL_MS = 5_000;
+
+function readCoverage(peerTable: PeerTable): { status: CoverageStatus; peers: number } {
+  const meters = computeCoverage(peerTable);
+  return {
+    status:
+      meters.state === 'GREEN' ? 'green' : meters.state === 'AMBER' ? 'amber' : 'red',
+    peers: meters.peersVisible,
+  };
+}
+
 function Sparkline({ data, color }: { data: number[]; color: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 14 }}>
@@ -60,12 +78,11 @@ export default function MeshStrip({ status: initialStatus, deviceCount: initialC
           geo: heartbeat.payload.geo,
         });
 
-        // Update coverage status
-        const coverageMeters = computeCoverage(peerTable);
-        const newStatus = coverageMeters.state === 'GREEN' ? 'green' :
-                         coverageMeters.state === 'AMBER' ? 'amber' : 'red';
-        setCoverage(newStatus as CoverageStatus);
-        setDeviceCount(coverageMeters.peersVisible);
+        // Reflect the fresh observation immediately; the interval below keeps
+        // re-evaluating it as time passes without one.
+        const { status: next, peers } = readCoverage(peerTable);
+        setCoverage(next);
+        setDeviceCount(peers);
       },
       // Every reconnect flushes whatever was written while the link was down.
       onStatusChange: (status) => {
@@ -80,6 +97,18 @@ export default function MeshStrip({ status: initialStatus, deviceCount: initialC
     meshRef.current = client;
     return client;
   });
+
+  // Re-evaluate coverage on a clock, not only when a heartbeat lands, so the
+  // time since the last one actually accrues and the meter can decay
+  // GREEN -> AMBER -> RED on its own.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const { status: next, peers } = readCoverage(peerTable);
+      setCoverage(next);
+      setDeviceCount(peers);
+    }, COVERAGE_POLL_MS);
+    return () => clearInterval(id);
+  }, [peerTable]);
 
   // Connect to mesh on mount
   useEffect(() => {

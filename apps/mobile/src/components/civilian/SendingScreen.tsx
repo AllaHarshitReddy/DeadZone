@@ -13,11 +13,13 @@ interface Props {
   onDelivered: () => void;
 }
 
-const NODES = ['You', 'Relay 1', 'Relay 2', 'Responder'];
+// One network hop: this device -> the command node. There is no
+// device-to-device relay (CLAUDE.md, "Transport reality"), so the chain
+// shows the stages a message passes through, not intermediate carriers.
+const NODES = ['You', 'Command node', 'Stored'];
 
 export default function SendingScreen({ severity, people, helpTypes = [], userName = 'Civilian', onDelivered }: Props) {
   const [litNodes, setLitNodes] = useState(1); // "You" starts lit
-  const [relayCount, setRelayCount] = useState(0);
   const [phase, setPhase] = useState<'queued' | 'sending' | 'relaying' | 'delivered' | 'failed'>('queued');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -88,15 +90,13 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
 
         setPhase('sending');
         setLitNodes(1);
-        setRelayCount(0);
-        timers.push(setTimeout(() => { setPhase('relaying'); setRelayCount(1); setLitNodes(2); }, 900));
-        timers.push(setTimeout(() => { setRelayCount(2); setLitNodes(3); }, 2000));
+        timers.push(setTimeout(() => { setPhase('relaying'); setLitNodes(2); }, 900));
 
         await meshClient.sendEnvelope(envelope);
         dequeue(sosId);
         console.log('[SendingScreen] SOS delivered via mesh');
 
-        timers.push(setTimeout(() => { setRelayCount(3); setLitNodes(4); setPhase('delivered'); }, 3400));
+        timers.push(setTimeout(() => { setLitNodes(3); setPhase('delivered'); }, 3400));
         timers.push(setTimeout(() => onDelivered(), 5000));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -142,7 +142,7 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
         >
           {phase === 'queued' && 'SOS saved on this device.'}
           {phase === 'sending' && 'Sending SOS…'}
-          {phase === 'relaying' && 'Relaying through mesh…'}
+          {phase === 'relaying' && 'Sending to command node…'}
           {phase === 'delivered' && 'SOS delivered.'}
           {phase === 'failed' && 'Could not save SOS'}
         </h1>
@@ -153,7 +153,7 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
               ? 'A responder has received your alert.'
               : phase === 'queued'
                 ? 'Saved on this device. Not yet delivered to a responder.'
-                : `Relayed by ${relayCount} nearby device${relayCount !== 1 ? 's' : ''}`}
+                : 'Delivering to the command node over the local network.'}
         </p>
       </div>
 
@@ -255,8 +255,7 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
         {[
           { label: 'Severity', value: severity.charAt(0).toUpperCase() + severity.slice(1), color: severityColor },
           { label: 'People', value: `${people}`, color: '#E6EAF2' },
-          { label: 'Hops', value: `${Math.max(litNodes - 1, 0)}`, color: '#E6EAF2' },
-          { label: 'Relays', value: `${relayCount}`, color: '#E6EAF2' },
+          { label: 'Route', value: 'Direct to command node', color: '#E6EAF2' },
         ].map(({ label, value, color }) => (
           <div
             key={label}
