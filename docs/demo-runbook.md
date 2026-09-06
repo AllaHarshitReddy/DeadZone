@@ -28,9 +28,11 @@ Do all of this before anyone is watching. Every line is a demo that died once.
 ### Laptop
 
 ```bash
-# 1. CouchDB
-cd infra && docker compose up -d
-curl http://localhost:5984/            # must answer, not hang
+# 1. CouchDB — runs natively as a Windows service since 6 Sep (Docker Desktop
+#    won't start on this laptop). It's already up after boot; just check it.
+curl http://localhost:5984/            # must answer {"couchdb":"Welcome",...}
+#    If it doesn't: Services -> "Apache CouchDB" -> Start.
+#    admin / changeme; Fauxton at http://localhost:5984/_utils
 
 # 2. Coordination server + mesh
 cd apps/api && pnpm dev                # logs "listening on 0.0.0.0:4000"
@@ -229,15 +231,17 @@ Updated 5 Sep. **Do not demo an unproven beat cold.**
 | Same message ID collapses duplicates | ✅ Proven | Sent twice over a real socket, one document resulted |
 | Phone → laptop over LAN | 🟡 Simulated | Full WS round trip over the LAN IP; **not yet run from real phone hardware** |
 | Weather answer offline | ✅ Proven | Ran end to end on `phi4-mini`; 1.0-1.7s warm, against a 4s target |
-| Sync to CouchDB | 🔴 Unproven | Docker Desktop will not start; last hop never exercised |
+| Sync to CouchDB | ✅ Proven | Native CouchDB 3.3.0 (Docker abandoned); `pnpm sync-test` passed 5/5 — 24 records across an interrupted PouchDB↔CouchDB replication, zero loss, zero duplicates; 20 seed SOS visible in Fauxton |
 | Offline map with labels | 🟢 Working | Bengaluru basemap z0–14 + self-hosted glyphs/sprites; served by `apps/dashboard`, shown in the responder Map tab (dark, real SOS coords, pins anchored on zoom). Confirmed in a browser 6 Sep. Not yet run on real phone hardware or in a rehearsal. |
 | Three-device relay | 🔴 Not built | Needs a second phone; a nice-to-have, not a success criterion |
 
 ### The honest read
 
-Criteria 1, 2 and 3 are in good shape. Criterion 4 is half proven — the phone's
-queue drains and that is tested, but the server → CouchDB hop has never run
-because Docker is down.
+Criteria 2, 3 and 4 are proven. Criterion 4 (nothing is lost) is now fully
+exercised end to end: the phone's queue drains on reconnect (tested), and the
+server → CouchDB replication survives interruption with zero loss (sync-test
+5/5). Criterion 1 is the last gap — the phone → laptop hop is simulated but has
+not run from real phone hardware.
 
 **One judgement call to make before the 10th.** The weather cache holds real
 Open-Meteo data for Bengaluru, and right now that is 0.4 mm and GREEN. A calm

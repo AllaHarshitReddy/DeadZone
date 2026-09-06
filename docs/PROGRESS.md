@@ -13,7 +13,7 @@
 |---|---|---|
 | Scaffold + contracts | — | ✅ Done |
 | Frontend (Figma → web) | — | 🟡 Core flow works; offline path just landed |
-| A — Data spine | — | 🟡 UUID-as-`_id` + queue drain done; CouchDB not running |
+| A — Data spine | — | ✅ UUID-as-`_id`, queue drain, and PouchDB↔CouchDB replication all proven (sync-test 5/5 over an interrupted link) |
 | B — Edge node | — | ✅ Done — WeatherGPT answers offline in ~1.4s |
 | C — Offline maps | — | ✅ Bengaluru basemap renders offline in the dashboard **and** the responder Map tab; markers track on zoom; confirmed in a browser 6 Sep |
 | D — Triage rules | — | ✅ Done — 42/42 tests pass |
@@ -30,7 +30,7 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 |---|---|---|
 | Only one Android phone | Cannot test Nearby Connections or a real second peer | 6 Sep |
 | ~~City not chosen~~ — it is **Bengaluru** | Settled de facto: weather cache, seed data and app coords are all `12.9716, 77.5946`. Write it into `docs/decisions.md`. | Done 5 Sep |
-| Docker Desktop will not start | Blocks CouchDB, so Gate 3's final hop stays untested. `docker compose up` returns *"Docker Desktop is unable to start"*. Needs launching by hand. | 6 Sep |
+| ~~Docker Desktop will not start~~ — **resolved 6 Sep** | Docker Desktop's WSL2 backend has no distro and won't start. Abandoned it: CouchDB 3.3.0 now runs natively as a Windows service on :5984 (admin/changeme). All the api scripts and `sync-test`'s fallback work against it unchanged. `infra/docker-compose.yml` kept for other machines. | Done |
 | Demo weather is calm (0.4 mm, GREEN) | Criterion 2 works but demos weakly — the risk-band logic never shows its teeth. Decide: take live weather, or a clearly-labelled severe cache. | 9 Sep |
 
 ---
@@ -42,20 +42,29 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] **Gate 2 — it thinks.** Triage + WeatherGPT answer offline
       *Both halves proven 5 Sep. Triage 42/42. WeatherGPT answers from cached
       data in ~1.4s warm, and correctly refuses anything outside that cache.*
-- [ ] **Gate 3 — it remembers.** Full run, then sync on reconnect
-      *Client half done 5 Sep: queue drains on reconnect, verified idempotent
-      against the live server. Remaining: start CouchDB and prove the last hop.*
+- [x] **Gate 3 — it remembers.** Full run, then sync on reconnect
+      *Client half done 5 Sep: queue drains on reconnect, verified idempotent.
+      Server half proven 6 Sep: CouchDB running natively, `pnpm sync-test`
+      passed 5/5 — records survive an interrupted PouchDB↔CouchDB replication
+      with zero loss and zero duplicates. Still to rehearse as one continuous
+      run: phone SOS → queue → reconnect → Fauxton.*
 
 ---
 
 ## Track detail
 
 ### A — Data spine
-- [ ] CouchDB running, `sankatsetu` database created — **not reachable on :5984**
-- [ ] Seed script validates and writes 20 SOS records — unverified
+- [x] CouchDB running (native Windows service, 3.3.0 on :5984), `sankatsetu`
+      database created — `pnpm --filter @sankat-setu/api setup-db` idempotent
+- [x] Seed data in CouchDB — the 20 canonical SOS records are present and
+      visible in Fauxton (`pnpm seed` locks against the running server's
+      `.data/local`; run it with the api server stopped, or they replicate down
+      from CouchDB)
 - [x] UUID used as document `_id` — server writes `_id: envelope.id`; client keys on the same id
 - [x] Undelivered SOS queue drains on reconnect — `services/queue.ts`
-- [ ] Sync survives five interrupt/resume cycles — untested
+- [x] Sync survives five interrupt/resume cycles — `pnpm sync-test` PASS 5/5,
+      24 records each, zero loss / zero duplicates (Docker unavailable so it
+      used the JS-level interrupt fallback)
 
 > Note: the web app swapped PouchDB for a localStorage `StorageDatabase` to dodge
 > browser adapter issues. Device-side CouchDB replication therefore does **not**
@@ -190,6 +199,21 @@ had drifted and were assigning `Math.random()` positions). Typecheck + build +
 tests all green, and confirmed rendering in the browser — pins stay anchored on
 zoom after the marker fix above.
 
+**Gate 3 closed — CouchDB, without Docker.** Docker Desktop's WSL2 backend has
+no distro (`wsl -l -v` → none) and won't start, so it was abandoned. Installed
+Apache CouchDB 3.3.0 natively (Windows service, :5984, admin/changeme, MSI
+verified against Apache's SHA-256). Everything downstream worked unchanged:
+`setup-db` created `sankatsetu`, the 20 seed SOS are in Fauxton, and
+`pnpm sync-test` passed **5/5** — 24 records each run survive an interrupted
+PouchDB↔CouchDB replication with zero loss and zero duplicates (it logs
+"fallback mode" since it couldn't drive the Docker container). `infra/
+docker-compose.yml` stays for machines where Docker works; the runbook
+pre-flight now just checks the service is up.
+
+Note: `pnpm seed` can't run while the api server holds the lock on
+`.data/local` — run it with the server stopped, or (as done here) write the
+seed docs straight to CouchDB and let them replicate down.
+
 ### 4 Sep
 - Repo scaffolded: schema, seed data, cut list, compose file
 - `pnpm typecheck` passing across three packages
@@ -308,38 +332,35 @@ Not rewritten, since it was already pushed by the time it was noticed.
 
 ## Next session — start here
 
-**Blocked on a person, not on code:**
+**Done since this list was last written (6 Sep):** offline map built + wired +
+browser-verified; docs moved out of `other files/` into `docs/` + root; Gate 3
+closed (native CouchDB, sync-test 5/5). All on branch `feat/offline-map`,
+4 commits, **not yet pushed** (`git push -u origin feat/offline-map` — needs an
+interactive shell for credentials).
 
-1. **`git push origin main`** — one commit (`658da27`, the runbook revision) is
-   committed but unpushed. Git Credential Manager could not prompt from a
-   non-interactive shell.
-2. **Start Docker Desktop**, then `cd infra && docker compose up -d`. That is the
-   only thing standing between us and Gate 3.
-3. **Test on the real phone.** Hotspot, mobile data off, open
-   `http://<laptop-IP>:8443`, send an SOS. The wiring is proven; the hardware
-   is not.
+**Top priority — the last unproven success criterion:**
 
-**Decisions outstanding:**
+1. **Real phone test.** Hotspot or same Wi-Fi, mobile data off, open
+   `http://172.20.32.44:8443`, log in → Responder → send / receive an SOS, and
+   check the Map tab. Servers all bind `0.0.0.0`; firewall already allows Node.
+   This is Gate 1 / criterion 1 — the only one still simulated-only.
 
-- **What to do with `other files/`.** It is untracked and collides with the
-  repo: root already has a tracked `PROGRESS.md` claiming *"Status: INTEGRATION
-  COMPLETE"* — the claim that proved false — plus a second `README.md`. Decide
-  whether this directory becomes the canonical docs, moves into `docs/`, or
-  stays out of git. Until then, this file is not backed up.
-- **Demo weather.** The live forecast is 0.4 mm and GREEN, which demos weakly
-  for a disaster app. Take live weather, or prepare a severe cache and label it
-  plainly as illustrative.
+**Decision still outstanding:**
 
-**Then, in priority order:**
+- **Demo weather.** Live forecast is 0.4 mm / GREEN — criterion 2 works but the
+  risk-band logic never shows its teeth. Take live weather on the day, or
+  prepare a severe cache and label it plainly as illustrative.
 
-1. **Commit the map work.** It's verified in the browser now. ~450 files
-   (`data/tiles/` + `apps/dashboard/` + the `apps/mobile` map changes +
-   `pnpm-lock.yaml`). Branch off `main` first. Tied to the `other files/`
-   decision below — this file still isn't in git.
-2. **Run the map on the real phone** during a rehearsal — mobile data off,
-   `http://<laptop-IP>:8443`, responder → Map. The tile server (:3000) must be
-   up; it's now in the pre-flight list in `docs/demo-runbook.md`.
-3. **Five rehearsal runs** before the 10th.
+**Then:**
+
+2. **Five rehearsal runs** before the 10th — full pre-flight (now includes the
+   tile server on :3000 and the native CouchDB check), 90-second run, record
+   the fifth as the backup video.
+3. Frontend polish backlog (see the Frontend track above): notch-clearing
+   banner, internet vs mesh state shown separately, SVG icons, severity
+   colours, SOS hop-visualisation screen.
+4. Delete the 3 stale root docs: `DEMO_GUIDE.md`, `INTEGRATION_STATUS.md`,
+   `FRONTEND_INTEGRATION_MAP.md`.
 
 ---
 
