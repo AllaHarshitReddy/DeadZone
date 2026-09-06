@@ -26,7 +26,7 @@ export default function LogisticsPanel() {
           className="text-[#5A5A6A]"
           style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}
         >
-          Field command · Bhopal Metro · Live via mesh
+          Field command · Bengaluru
         </div>
       </div>
 

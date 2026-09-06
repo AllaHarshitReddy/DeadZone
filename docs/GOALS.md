@@ -69,9 +69,9 @@ Read these in this order:
 
 ## Open decisions
 
-**City:** Bengaluru or Bhopal? Gates seed data, PMTiles extract, weather cache, location strings. Pick today, write to `docs/decisions.md`.
+~~**City:** Bengaluru or Bhopal?~~ **Settled: Bengaluru.** Seed data, the extracted PMTiles window, the weather cache and the map centre are all `12.9716, 77.5946`.
 
-**Second phone:** Needed by 6 September for Nearby Connections testing. Fallback is hotspot-LAN transport (already in the plan, not a crisis if this doesn't happen).
+**Second phone:** Only needed for the three-device relay, which is not built and is not a success criterion. The hotspot LAN is the transport — see "Transport reality" in `CLAUDE.md`; there is no Nearby Connections in this codebase.
 
 ---
 
