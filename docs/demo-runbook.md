@@ -27,43 +27,73 @@ Do all of this before anyone is watching. Every line is a demo that died once.
 
 ### Laptop
 
+**Start in this order and do not skip a ready-check.** Each service depends on
+the one above it. Starting Vite before the tile server is up is the usual cause
+of an empty Map tab that looks like a code failure.
+
 ```bash
-# 1. CouchDB - runs natively as a Windows service since 6 Sep (Docker Desktop
-#    will not start on this laptop). It is set to start automatically, so
-#    normally there is nothing to do but verify:
-curl http://localhost:5984/            # must answer {"couchdb":"Welcome",...}
-#    If it does not: Start-Service "Apache CouchDB"  (or Services -> start it)
+# 1. CouchDB - a native Windows service since 6 Sep (Docker Desktop will not
+#    start on this laptop). Set to start on boot, so normally just verify:
+curl http://localhost:5984/            # READY: {"couchdb":"Welcome",...}
+#    If not: Start-Service "Apache CouchDB"
 #    admin / changeme; Fauxton at http://localhost:5984/_utils
-#    infra/docker-compose.yml still describes the same database on the same
-#    port, for machines that do have a working Docker daemon.
+#    Do NOT reach for docker compose - there is no working daemon here.
 
-# 2. Coordination server + mesh
-cd apps/api && pnpm dev                # logs "listening on 0.0.0.0:4000"
+# 2. Offline tile server - FIRST of the node services; the map depends on it
+cd apps/dashboard && pnpm dev
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/style.json
+#                                        READY: 200
+node apps/dashboard/scripts/verify-offline.js
+#                                        READY: "PASS - no external dependencies"
 
-# 3. Offline tile server (feeds the responder map)
-cd apps/dashboard && pnpm dev          # "Offline tile server on 0.0.0.0:3000"
-curl -s http://localhost:3000/verify-offline   # must say "ok": true
+# 3. Coordination server + mesh
+cd apps/api && pnpm dev
+#   READY: logs "listening on 0.0.0.0:4000" and
+#          "Reachable from phones at: ws://<LAN-IP>:4000/mesh"  <- write the IP down
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:4000/health     # READY: 200
 
 # 4. The app
 cd apps/mobile && pnpm dev             # serves on 0.0.0.0:8443
-                                       # proxies /tiles/* -> :3000
+#   READY: all four return 200 -
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8443/
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8443/sos
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8443/tiles/style.json
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8443/fonts/Inter-400-latin.woff2
 
-# 5. Edge AI — note the env vars, they are not optional
+# 5. Edge AI - the env vars are not optional
 OLLAMA_HOST=0.0.0.0 OLLAMA_ORIGINS=* OLLAMA_KEEP_ALIVE=-1 ollama serve
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:11434/api/tags  # READY: 200
 cd apps/ai && pnpm dev
 
-# 6. Warm the model so the first answer is not the slow one
+# 6. WARM THE MODEL. Mandatory - see the timing table below.
 curl -X POST http://localhost:4001/ai/chat \
   -H 'Content-Type: application/json' \
-  -d '{"q":"is it going to rain today?"}'
+  -d '{"q":"how much rain is expected in the next 24 hours?"}'
+#   First call: expect up to ~60s. Wait it out, touch nothing else.
+#   Then run it twice more - READY when both return in about 1s.
 ```
 
-`OLLAMA_KEEP_ALIVE=-1` keeps the model resident. Without it the first question
-of the demo pays a cold-start pause while a judge watches a spinner.
+### The warm-up is mandatory, not a nicety
+
+Measured on this laptop, 6 Sep:
+
+| State | Time |
+|---|---|
+| Cold - Ollama just started, model still on disk | **~58 s** |
+| Warm - model resident | **~0.9-1.1 s** |
+
+Sixty seconds of silence with a judge watching is the demo dying, and it is
+unrecoverable inside ninety seconds. `ollama serve` being up is **not** the same
+as the model being loaded: the first request is what pulls the weights off disk.
+Never start a rehearsal or the real run until you have seen two consecutive ~1s
+responses.
+
+`OLLAMA_KEEP_ALIVE=-1` keeps it resident afterwards. Without it the model
+unloads while idle and you pay the cold start again, mid-demo.
 
 `OLLAMA_HOST=0.0.0.0` is what lets the phone reach the laptop. It also opens the
-model API to the whole network — only ever do this on the isolated demo hotspot,
-never on venue Wi-Fi.
+model API to the whole network - only ever on the isolated demo hotspot, never
+on venue Wi-Fi.
 
 ### Note the laptop's LAN address
 
@@ -139,8 +169,15 @@ This is your strongest argument. Do not rush it.
 
 > *"How much rain is expected in the next 24 hours?"*
 
-Verified answer: *"0.4 mm of total precipitation is expected in the next 24
-hours."* — 1.4s.
+> **The millimetre figure moves. Do not memorise it.** The answer is computed
+> from the cached forecast against a 24-hour window anchored to *now*, so it
+> drifts as the window rolls forward: 0.4 mm on 5 Sep, 0.2 mm on 6 Sep, from the
+> same cache — and the model read both correctly. Rehearse the *shape* of the
+> answer, not the value. On demo morning, the pre-flight warm-up call returns
+> the number you should be ready to hear.
+
+Answer shape: *"<N> millimetres of rain is expected in the next 24 hours."*
+— about 1s warm.
 
 > "That is a 3.8-billion-parameter model running on this laptop with no
 > internet. The number is computed deterministically from cached forecast data
@@ -150,7 +187,8 @@ hours."* — 1.4s.
 
 > *"What is the wind speed?"*
 
-Verified answer: *"I don't have data for that."* — 0.95s.
+Verified answer: *"I don't have data for that."* — about 1s. This one does not
+drift: it is a refusal, not a figure.
 
 > "There is no wind data in the cache, so it says so. It does not guess. In a
 > disaster, a confident wrong answer is worse than no answer."
@@ -206,9 +244,11 @@ reach for `docker compose up` — the Docker daemon on this laptop is unreachabl
 so that command errors out and costs you a minute you do not have. Only Beat 6
 needs CouchDB; every earlier beat runs without it.
 
-**Weather question hangs.** Model was not warm. Cold start measured at 5.8s
-against 1.4s warm, so this is what the pre-flight warm-up call prevents. Move on
-to another beat and come back; do not wait in silence.
+**Weather question hangs.** The model was not warm. Cold start is **~58s**
+against ~1s warm — that is unrecoverable inside a ninety-second demo, and it is
+exactly what the mandatory pre-flight warm-up prevents. Move to another beat
+immediately; never wait in silence. Re-run the warm-up call off to the side and
+come back to the weather beat only if it answers.
 
 **Weather answers "I don't have data for that."** Expected for anything outside
 the cached object. Use it — see Beat 5 — or re-ask with one of the verified
@@ -266,7 +306,8 @@ What is left is not architecture, it is rehearsal. The five clean runs below
 have not been done, and the log is empty.
 
 **One judgement call to make before the 10th.** The weather cache holds real
-Open-Meteo data for Bengaluru, and right now that is 0.4 mm and GREEN. A calm
+Open-Meteo data for Bengaluru; on 6 Sep the rolling 24-hour window put that at
+0.2 mm and GREEN, and it will read differently again on the 10th. A calm
 forecast makes a weak demo for a disaster-response app: the risk-band logic
 never shows its teeth. Either refresh the cache near the date and take what the
 weather gives you, or prepare a severe-weather cache and say plainly that it is
