@@ -1,142 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sankat Setu Offline Map</title>
-  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
-  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet">
-  <script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sankat Setu — Offline Map</title>
+  <link href="/vendor/maplibre-gl.css" rel="stylesheet" />
+  <script src="/vendor/maplibre-gl.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; }
-    #map { width: 100vw; height: 100vh; }
-    .info {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      z-index: 100;
-      max-width: 300px;
-      font-size: 12px;
+    html, body { height: 100%; font-family: system-ui, sans-serif; }
+    #map { position: absolute; inset: 0; }
+    .panel {
+      position: absolute; top: 12px; left: 12px; z-index: 10;
+      background: rgba(255, 255, 255, 0.95); border-radius: 8px;
+      padding: 12px 14px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      max-width: 280px; font-size: 12px; line-height: 1.5;
     }
-    .sos-marker {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: #ff3333;
-      border: 2px solid white;
-      border-radius: 50%;
-      font-weight: bold;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    .panel h1 { font-size: 14px; margin-bottom: 4px; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-weight: 600; font-size: 11px; margin-top: 6px;
     }
-    .sos-marker:hover {
-      background: #ff1111;
-      transform: scale(1.1);
+    .badge.ok { background: #dcfce7; color: #166534; }
+    .badge.bad { background: #fee2e2; color: #991b1b; }
+    .badge.wait { background: #fef9c3; color: #854d0e; }
+    /* The marker element itself is positioned by MapLibre (it rewrites the
+       transform every frame) — so the teardrop shape lives on an inner node. */
+    .sos-marker { width: 26px; height: 26px; cursor: pointer; }
+    .sos-marker .pin {
+      position: absolute; inset: 0; border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg); border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     }
-    .popup {
-      background: white;
-      padding: 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      max-width: 200px;
+    .sos-marker span {
+      position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 12px;
     }
+    .maplibregl-popup-content { font-size: 12px; line-height: 1.5; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="info">
-    <h3>Sankat Setu</h3>
-    <p>Offline Emergency Map</p>
-    <p id="status">Loading map...</p>
-    <p style="margin-top: 8px; font-size: 10px; color: #666;">
-      PMTiles: city.pmtiles<br>
-      Style: Local glyphs + sprites<br>
-      Mode: Offline-first
-    </p>
+  <div class="panel">
+    <h1>Sankat Setu</h1>
+    <div>Offline responder map — Bengaluru</div>
+    <div id="status" class="badge wait">loading…</div>
+    <div style="margin-top: 8px; font-size: 10px; color: #666;">
+      basemap tiles · glyphs · sprites — all served locally<br />
+      no network requests leave this machine
+    </div>
   </div>
 
   <script>
-    // Register PMTiles protocol
-    let protocol = new pmtiles.Protocol();
-    maplibregl.addProtocol('pmtiles', protocol.tile);
+    const PRIORITY_COLOR = {
+      critical: "#dc2626",
+      high: "#ea580c",
+      medium: "#d97706",
+      low: "#16a34a",
+    };
 
-    // Initialize map
     const map = new maplibregl.Map({
-      container: 'map',
-      style: './style.json',
+      container: "map",
+      style: "/style.json",
+      // MapLibre hands tile/glyph URLs to a Web Worker with no relative-URL
+      // base, so every request must be made absolute here.
+      transformRequest: (url) => {
+        try { return { url: new URL(url, location.origin).href }; }
+        catch { return { url }; }
+      },
       center: [77.5946, 12.9716], // Bengaluru
       zoom: 11,
-      pitch: 0,
-      bearing: 0
+      minZoom: 10,
+      maxZoom: 17,
+      // Locked just inside the extracted tile window so the camera can't ask
+      // for a tile that isn't on disk (see data/tiles/README.md).
+      maxBounds: [[77.48, 12.84], [77.76, 13.13]],
+      renderWorldCopies: false,
+      attributionControl: { compact: true },
+    });
+    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }));
+
+    const statusEl = document.getElementById("status");
+    const setStatus = (text, kind) => {
+      statusEl.textContent = text;
+      statusEl.className = "badge " + kind;
+    };
+
+    let labelsSeen = false;
+    map.on("styledata", () => {
+      // If a glyph request had failed, symbol layers would never populate.
+      if (!labelsSeen && map.getLayer("places-city")) labelsSeen = true;
     });
 
-    const statusEl = document.getElementById('status');
-
-    // Load SOS data from seed file
-    let sosData = [];
-    fetch('/../../data/seed/sos.json')
-      .then(r => r.json())
-      .then(data => {
-        sosData = data;
-        addSosMarkers();
-        statusEl.innerHTML = `Loaded ${sosData.length} SOS reports.<br>Offline map ready.`;
-      })
-      .catch(err => {
-        statusEl.innerHTML = `Error loading SOS data: ${err.message}`;
-        console.error(err);
-      });
-
-    // Add SOS markers to map
-    function addSosMarkers() {
-      sosData.forEach((sos, idx) => {
-        if (!sos.geo || !sos.geo.lat || !sos.geo.lng) return;
-
-        // Create marker element
-        const el = document.createElement('div');
-        el.className = 'sos-marker';
-        el.textContent = idx + 1;
-        el.title = sos.description || 'SOS';
-
-        // Add marker to map
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([sos.geo.lng, sos.geo.lat])
-          .addTo(map);
-
-        // Show popup on click
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const popup = new maplibregl.Popup({ offset: 25 })
-            .setHTML(`
-              <div class="popup">
-                <strong>${sos.incidentType}</strong><br>
-                Priority: ${sos.priority}<br>
-                Victims: ${sos.victimCount}<br>
-                <small>${sos.description}</small>
-              </div>
-            `)
+    map.on("load", async () => {
+      try {
+        const res = await fetch("/seed/sos.json");
+        const incidents = await res.json();
+        let placed = 0;
+        for (const sos of incidents) {
+          const lng = sos.geo?.lng;
+          const lat = sos.geo?.lat;
+          if (typeof lng !== "number" || typeof lat !== "number") continue;
+          const el = document.createElement("div");
+          el.className = "sos-marker";
+          const color = PRIORITY_COLOR[sos.priority] ?? "#dc2626";
+          el.innerHTML =
+            '<div class="pin" style="background:' + color + '"></div>' +
+            "<span>" + (sos.victimCount ?? "?") + "</span>";
+          new maplibregl.Marker({ element: el, anchor: "bottom" })
+            .setLngLat([lng, lat])
+            .setPopup(
+              new maplibregl.Popup({ offset: 18 }).setHTML(
+                "<strong>" + sos.incidentType + "</strong> — " + sos.priority +
+                  "<br />" + (sos.victimCount ?? "?") + " people" +
+                  "<br /><small>" + (sos.description ?? "") + "</small>",
+              ),
+            )
             .addTo(map);
-          marker.togglePopup();
-        });
-      });
-    }
-
-    // Log when style loads
-    map.on('style.load', () => {
-      console.log('Map style loaded successfully');
+          placed++;
+        }
+        setStatus(placed + " SOS on map · offline", "ok");
+      } catch (err) {
+        setStatus("map ok, SOS load failed: " + err.message, "wait");
+      }
     });
 
-    map.on('error', (err) => {
-      console.error('Map error:', err);
-      statusEl.innerHTML = 'Map error: ' + err.message;
+    // A missing tile or glyph range fires a non-fatal error; the map draws
+    // without it. Only surface anything that isn't a 404.
+    map.on("error", (e) => {
+      const msg = (e && e.error && e.error.message) || "";
+      if (/\b404\b|not found/i.test(msg)) return;
+      console.error("map error:", e && e.error);
+      setStatus("map error — see console", "bad");
     });
   </script>
 </body>

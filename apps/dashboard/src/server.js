@@ -1,114 +1,77 @@
 const express = require("express");
 const path = require("path");
 const os = require("os");
-const fs = require("fs");
+const { execFileSync } = require("child_process");
 
 /**
- * Static tile server for offline maps. Serves PMTiles, glyphs, and sprites
- * with support for HTTP range requests (required by PMTiles).
- * Bound to 0.0.0.0 and logs the LAN IP so phones can load the map.
+ * Static tile server for the offline map.
+ *
+ * Serves the vector basemap tiles, self-hosted glyphs and sprites, the style
+ * JSON, and a small MapLibre test page. Everything it serves is local — there
+ * is no code path here that reaches the internet.
+ *
+ * Bound to 0.0.0.0 and logs the LAN IP so a phone on the hotspot can load it.
  */
 
 const app = express();
-const TILES_DIR = path.resolve(__dirname, "../../data/tiles");
+const SRC_DIR = __dirname;
+const REPO_ROOT = path.resolve(__dirname, "../../..");
+const TILES_DIR = path.join(REPO_ROOT, "data/tiles");
+const SEED_DIR = path.join(REPO_ROOT, "data/seed");
 const PORT = Number(process.env.PORT ?? 3000);
 const HOST = "0.0.0.0";
 
-// Middleware for range request support (required for PMTiles)
-app.use((req, res, next) => {
-  const originalSend = res.send;
+// Optional request log — set DASH_LOG=/path to enable. Diagnostic only.
+if (process.env.DASH_LOG) {
+  const fs = require("fs");
+  fs.writeFileSync(process.env.DASH_LOG, "");
+  app.use((req, res, next) => {
+    const t = Date.now();
+    res.on("finish", () => {
+      fs.appendFileSync(process.env.DASH_LOG, `${res.statusCode} ${req.method} ${req.originalUrl} ${Date.now() - t}ms\n`);
+    });
+    next();
+  });
+}
 
-  res.send = function (data) {
-    const filePath = path.join(TILES_DIR, req.path);
+// The map's own assets: bengaluru/{z}/{x}/{y}.pbf tiles, glyphs/, sprites/.
+app.use(
+  express.static(TILES_DIR, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".pbf")) res.type("application/x-protobuf");
+    },
+  }),
+);
 
-    // Only handle range requests for actual files that exist
-    if (req.get("range") && fs.existsSync(filePath)) {
-      try {
-        const stat = fs.statSync(filePath);
-        const fileSize = stat.size;
-        const range = req.get("range").match(/bytes=(\d+)-(\d*)/);
+// Vendored MapLibre + PMTiles bundles and the style JSON.
+app.use("/vendor", express.static(path.join(SRC_DIR, "vendor")));
+app.get("/style.json", (_req, res) => res.sendFile(path.join(SRC_DIR, "style.json")));
 
-        if (range) {
-          const start = parseInt(range[1], 10);
-          const end = range[2] ? parseInt(range[2], 10) : fileSize - 1;
+// Fictional demo incidents, read straight from the committed seed file.
+app.get("/seed/sos.json", (_req, res) => res.sendFile(path.join(SEED_DIR, "sos.json")));
 
-          if (start >= 0 && start < fileSize && end >= start && end < fileSize) {
-            res.status(206);
-            res.set("Content-Range", `bytes ${start}-${end}/${fileSize}`);
-            res.set("Content-Length", end - start + 1);
-            res.set("Accept-Ranges", "bytes");
+app.get("/", (_req, res) => res.sendFile(path.join(SRC_DIR, "index.html")));
 
-            const stream = fs.createReadStream(filePath, { start, end });
-            stream.pipe(res);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("Range request error:", err.message);
-      }
-    }
-
-    return originalSend.call(this, data);
-  };
-
-  next();
-});
-
-// Serve static files from data/tiles
-app.use(express.static(TILES_DIR));
-
-// Serve the test HTML page
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
-
-// Serve style JSON
-app.get("/style.json", (req, res) => {
-  res.sendFile(path.join(__dirname, "style.json"));
-});
-
-// Verification endpoint: check if style has external URLs
-app.get("/verify-offline", (req, res) => {
+// Offline check: runs the same verifier as the CLI script and returns its report.
+app.get("/verify-offline", (_req, res) => {
   try {
-    const styleFile = path.join(__dirname, "style.json");
-    const style = JSON.parse(fs.readFileSync(styleFile, "utf-8"));
-
-    const styleStr = JSON.stringify(style);
-    const hasExternalUrl =
-      styleStr.includes("http://") || styleStr.includes("https://");
-
-    if (hasExternalUrl) {
-      const lines = styleStr.split("\n");
-      const externalMatches = [];
-      lines.forEach((line, idx) => {
-        if (line.includes("http://") || line.includes("https://")) {
-          externalMatches.push({ line: idx, content: line.substring(0, 100) });
-        }
-      });
-
-      res.status(400).json({
-        verified: false,
-        error: "Style contains external URLs",
-        examples: externalMatches.slice(0, 5),
-      });
-    } else {
-      res.json({
-        verified: true,
-        message: "Style is offline-only (no external http/https URLs)",
-      });
-    }
+    const out = execFileSync(
+      process.execPath,
+      [path.join(REPO_ROOT, "apps/dashboard/scripts/verify-offline.js"), "--json"],
+      { encoding: "utf-8" },
+    );
+    res.type("application/json").send(out);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // verify-offline.js exits non-zero when it finds a problem; its JSON is on stdout.
+    const body = err.stdout && err.stdout.trim();
+    res.status(400).type("application/json").send(body || JSON.stringify({ ok: false, error: err.message }));
   }
 });
 
 function getLanIp() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name] || []) {
-      if (iface.family === "IPv4" && !iface.internal) {
-        return iface.address;
-      }
+  for (const ifaces of Object.values(os.networkInterfaces())) {
+    for (const iface of ifaces ?? []) {
+      if (iface.family === "IPv4" && !iface.internal) return iface.address;
     }
   }
   return "localhost";
@@ -116,7 +79,8 @@ function getLanIp() {
 
 app.listen(PORT, HOST, () => {
   const lanIp = getLanIp();
-  console.log(`Tile server running on ${HOST}:${PORT}`);
-  console.log(`Open http://${lanIp}:${PORT} in your browser`);
-  console.log(`Tiles directory: ${TILES_DIR}`);
+  console.log(`Offline tile server on ${HOST}:${PORT}`);
+  console.log(`  this machine:  http://localhost:${PORT}`);
+  console.log(`  from a phone:  http://${lanIp}:${PORT}`);
+  console.log(`  tiles:         ${TILES_DIR}`);
 });
