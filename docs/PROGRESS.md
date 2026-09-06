@@ -12,15 +12,21 @@
 | Track | Owner | State |
 |---|---|---|
 | Scaffold + contracts | — | ✅ Done |
-| Frontend (Figma → web) | — | 🟡 Core flow works; offline path just landed |
+| Frontend (Figma → web) | — | 🟡 Core flow + offline map work; polish backlog open (notch banner, mesh/net split, SVG icons, severity colours, hop screen) |
 | A — Data spine | — | ✅ UUID-as-`_id`, queue drain, and PouchDB↔CouchDB replication all proven (sync-test 5/5 over an interrupted link) |
 | B — Edge node | — | ✅ Done — WeatherGPT answers offline in ~1.4s |
 | C — Offline maps | — | ✅ Bengaluru basemap renders offline in the dashboard **and** the responder Map tab; markers track on zoom; confirmed in a browser 6 Sep |
-| D — Triage rules | — | ✅ Done — 42/42 tests pass |
-| E — LAN transport | — | 🟡 Server complete; cross-device untested |
-| Expo dev client | — | 🟡 Building |
+| D — Triage rules | — | ✅ Done — 43/43 tests; apnea no longer inferred from incident type + priority (6 Sep) |
+| E — LAN transport | — | 🟡 Server complete; mesh client now reconnects forever; phone↔laptop still not run on real hardware |
+| Expo dev client | — | 🟡 Building (separate; not in the repo) |
 
 Legend: ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
+
+> **Branch:** `feat/offline-map` — 10 commits, pushed to GitHub 6 Sep. PR not
+> opened yet: <https://github.com/AllaHarshitReddy/Sankat-Setu-/pull/new/feat/offline-map>.
+> Pushing large payloads to this repo from the dev laptop is flaky (connection
+> resets on the 17 MB tile commit; GCM auth intermittently fails from a
+> non-interactive shell) — retry, or push commit-by-commit.
 
 ---
 
@@ -28,7 +34,7 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
 | Blocker | Impact | Resolve by |
 |---|---|---|
-| Only one Android phone | Cannot test Nearby Connections or a real second peer | 6 Sep |
+| Only one Android phone | Blocks the three-device relay (a nice-to-have). Phone → laptop over hotspot is the primary transport and does NOT need a second phone — but has still only been run laptop-to-laptop, never from real phone hardware. | Rehearse before 10 Sep |
 | ~~City not chosen~~ — it is **Bengaluru** | Settled de facto: weather cache, seed data and app coords are all `12.9716, 77.5946`. Write it into `docs/decisions.md`. | Done 5 Sep |
 | ~~Docker Desktop will not start~~ — **resolved 6 Sep** | Docker Desktop's WSL2 backend has no distro and won't start. Abandoned it: CouchDB 3.3.0 now runs natively as a Windows service on :5984 (admin/changeme). All the api scripts and `sync-test`'s fallback work against it unchanged. `infra/docker-compose.yml` kept for other machines. | Done |
 | Demo weather is calm (0.4 mm, GREEN) | Criterion 2 works but demos weakly — the risk-band logic never shows its teeth. Decide: take live weather, or a clearly-labelled severe cache. | 9 Sep |
@@ -366,35 +372,43 @@ Not rewritten, since it was already pushed by the time it was noticed.
 
 ## Next session — start here
 
-**Done since this list was last written (6 Sep):** offline map built + wired +
-browser-verified; docs moved out of `other files/` into `docs/` + root; Gate 3
-closed (native CouchDB, sync-test 5/5). All on branch `feat/offline-map`,
-4 commits, **not yet pushed** (`git push -u origin feat/offline-map` — needs an
-interactive shell for credentials).
+**Done 6 Sep** (branch `feat/offline-map`, 10 commits, pushed to GitHub):
+offline map built + wired + browser-verified; docs consolidated into `docs/` +
+root (`other files/` gone, stale root `PROGRESS.md` deleted); Gate 3 closed
+(native CouchDB, sync-test 5/5); full bug-hunt read of every package — 4 fixed
+(mesh reconnect, drowning→DECEASED, phone-SOS metadata, scattered geo), 7
+tracked (see 6 Sep daily log). PR not opened yet.
 
 **Top priority — the last unproven success criterion:**
 
 1. **Real phone test.** Hotspot or same Wi-Fi, mobile data off, open
-   `http://172.20.32.44:8443`, log in → Responder → send / receive an SOS, and
-   check the Map tab. Servers all bind `0.0.0.0`; firewall already allows Node.
+   `http://<laptop-IP>:8443` (was `172.20.32.44` on 6 Sep — re-check with
+   `ipconfig`), log in → Responder → send / receive an SOS, check the Map tab.
+   All five servers bind `0.0.0.0`; Windows firewall already allows Node.
    This is Gate 1 / criterion 1 — the only one still simulated-only.
+   Pre-flight (`docs/demo-runbook.md`): CouchDB service up · `apps/api` ·
+   `apps/dashboard` (tiles :3000) · `apps/mobile` (:8443) · `apps/ai` + Ollama.
 
 **Decision still outstanding:**
 
 - **Demo weather.** Live forecast is 0.4 mm / GREEN — criterion 2 works but the
   risk-band logic never shows its teeth. Take live weather on the day, or
-  prepare a severe cache and label it plainly as illustrative.
+  prepare a severe cache and label it plainly as illustrative. Also: the cache
+  itself expires **2026-09-11T23:00** — re-run `pnpm --filter @sankat-setu/ai
+  fetch-weather` on the 9th or 10th regardless.
 
 **Then:**
 
-2. **Five rehearsal runs** before the 10th — full pre-flight (now includes the
-   tile server on :3000 and the native CouchDB check), 90-second run, record
-   the fifth as the backup video.
-3. Frontend polish backlog (see the Frontend track above): notch-clearing
-   banner, internet vs mesh state shown separately, SVG icons, severity
-   colours, SOS hop-visualisation screen.
-4. Delete the 3 stale root docs: `DEMO_GUIDE.md`, `INTEGRATION_STATUS.md`,
-   `FRONTEND_INTEGRATION_MAP.md`.
+2. **Open the PR** for `feat/offline-map` and merge to `main`.
+3. **Five rehearsal runs** before the 10th — full pre-flight, 90-second run,
+   record the fifth as the backup video.
+4. Frontend polish backlog (Frontend track above): notch-clearing banner,
+   internet vs mesh state shown separately, SVG icons, severity colours, SOS
+   hop-visualisation screen.
+5. Optional cleanup: the 7 tracked bugs (esp. #6 heartbeat-callback leak and #8
+   SendingScreen's second socket — same demo path); delete stale root docs
+   `DEMO_GUIDE.md` / `INTEGRATION_STATUS.md` / `FRONTEND_INTEGRATION_MAP.md`;
+   Capacitor APK (toolchain is present; ~half day, needs endpoint config).
 
 ---
 
