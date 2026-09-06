@@ -223,3 +223,43 @@ before assuming sync is broken.
 ## When adding an entry
 
 Paste the **actual error text**, not a paraphrase. Someone searching this file will search for the string they see on screen.
+
+---
+
+## Google Fonts self-hosted (6 Sep)
+
+**Symptom that would have appeared live:** `src/index.css` opened with three
+`@import url('https://fonts.googleapis.com/...')` lines. Every test until now
+had some path to the internet, so the fonts always loaded. On a hotspot with no
+uplink they fail *silently* — no error, no console warning, text just renders in
+a system fallback. For an offline demo that is the worst possible failure mode:
+invisible in rehearsal, visible to a judge.
+
+**Fix:** downloaded the woff2 files for the exact families and weights in use —
+Barlow Condensed 400/600/700/800/900, Inter 400/500/600/700/800, JetBrains Mono
+400/500/600 — `latin` and `latin-ext` subsets, 26 files, ~1 MB total. They live
+in `apps/mobile/public/fonts/` and are served same-origin by Vite at
+`/fonts/*.woff2`. The `@import` lines became `@font-face` rules with the
+original `unicode-range` values preserved so subsetting still works.
+
+**Gotcha:** CSS requires every `@import` to precede all other rules. Dropping
+the `@font-face` block above `@import 'tailwindcss'` silently invalidates the
+Tailwind import. The imports must stay on lines 1–2.
+
+**To regenerate** (needs internet, only if weights change): fetch
+`https://fonts.googleapis.com/css2?family=<Family>:wght@<list>&display=swap`
+with a desktop-Chrome User-Agent — the UA is what decides whether Google serves
+woff2 or ttf — then keep the `latin` and `latin-ext` blocks, download each
+`.woff2` into `public/fonts/`, and rewrite the `@font-face` rules with the
+`unicode-range` values from the response.
+
+**Verified:** the shipped CSS contains 26 `@font-face` rules and 26
+`url(/fonts/...)` sources, and zero external asset references. The only
+remaining `http(s)://` strings in the build are SVG XML namespaces, a
+tailwindcss.com comment, the MapLibre attribution `<a href>`, and Zod/React
+error-message text — none of which is ever fetched.
+
+**Still falls back to a system font:** Devanagari. `LanguageSelect`,
+`LoginScreen` and `RoleSelect` contain Devanagari text, and none of these three
+families ship Devanagari glyphs — that was equally true before this change,
+online or off. Fixing it means adding Noto Sans Devanagari; not done.

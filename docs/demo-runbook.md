@@ -238,11 +238,11 @@ Updated 6 Sep. **Do not demo an unproven beat cold.**
 | SOS survives with no network | ✅ Proven | Local write precedes every network call; asserted in code |
 | Queue drains on reconnect | ✅ Proven | 10/10 tests, plus live round trip against the server |
 | Same message ID collapses duplicates | ✅ Proven | Sent twice over a real socket, one document resulted |
-| Phone → laptop over LAN | 🟡 Simulated | Full WS round trip over the LAN IP; **not yet run from real phone hardware** |
+| Phone → laptop over LAN | ✅ **Proven on hardware** | 6 Sep: a real Android phone on the laptop hotspot sent an SOS that arrived on a separately-opened responder screen. No longer simulated. |
 | Weather answer offline | ✅ Proven | Ran end to end on `phi4-mini`; 1.0-1.7s warm, against a 4s target |
 | Sync to CouchDB | ✅ Proven | Native CouchDB 3.3.0 (Docker abandoned). `cd apps/api && pnpm sync-test`: 24 records across an interrupted PouchDB↔CouchDB replication, zero loss, zero duplicates; seed SOS visible in Fauxton. The interrupt is a cancelled-and-restarted sync handle, not a real network cut |
-| Offline map with labels | ✅ Proven | Bengaluru basemap z0–14 with self-hosted glyphs and sprites, served by `apps/dashboard`, rendering in the responder Map tab with pins anchored on zoom. Confirmed in a browser 6 Sep; not yet on phone hardware |
-| SOS appears live on the responder screen | ✅ Proven | Server fans each stored envelope out to every other connected client; a separately-opened dashboard socket received it, and `GET /sos` snapshots the store for a late joiner. Verified client-to-client 6 Sep; not yet phone-to-laptop |
+| Offline map with labels | ✅ Proven | Bengaluru basemap z0–14, self-hosted glyphs and sprites, served by `apps/dashboard`. Renders with labels in the responder Map tab, pins anchored on zoom. 6 Sep: confirmed alongside a live phone SOS in the same session. |
+| SOS appears live on the responder screen | ✅ **Proven on hardware** | Server fans each stored envelope out to every other connected client; `GET /sos` snapshots the store for a late joiner. 6 Sep: a real phone SOS appeared as a pin on the real offline basemap, live, with no reload. |
 | Three-device relay | 🔴 Not built | Needs a second phone; a nice-to-have, not a success criterion |
 
 ### The honest read
@@ -257,8 +257,13 @@ had transferred before the cancel. What is proven is that replication survives
 being cancelled and restarted cleanly — not that a half-transferred batch
 resumed mid-flight. Good enough for the beat; do not claim more to a judge.
 
-Criterion 1 is the last gap and the single largest risk left: **nothing has run
-on real phone hardware.** Every result above is a laptop talking to itself.
+**All four criteria are now proven, criterion 1 on real hardware (6 Sep).** The
+last structural gap — nothing had ever run on a phone — is closed: a real
+handset on the hotspot sent an SOS that landed as a pin on the real offline
+basemap without a reload.
+
+What is left is not architecture, it is rehearsal. The five clean runs below
+have not been done, and the log is empty.
 
 **One judgement call to make before the 10th.** The weather cache holds real
 Open-Meteo data for Bengaluru, and right now that is 0.4 mm and GREEN. A calm

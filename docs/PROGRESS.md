@@ -15,9 +15,9 @@
 | Frontend (Figma → web) | — | 🟡 Core flow + offline map work; polish backlog open (notch banner, mesh/net split, SVG icons, severity colours, hop screen) |
 | A — Data spine | — | ✅ UUID-as-`_id`, queue drain, and PouchDB↔CouchDB replication all proven (sync-test 5/5 over an interrupted link) |
 | B — Edge node | — | ✅ Done — WeatherGPT answers offline in ~1.4s |
-| C — Offline maps | — | ✅ Bengaluru basemap renders offline in the dashboard **and** the responder Map tab; markers track on zoom; confirmed in a browser 6 Sep |
+| C — Offline maps | — | ✅ Bengaluru basemap renders offline in the dashboard **and** the responder Map tab; markers track on zoom. 6 Sep: confirmed on hardware, with a live phone SOS landing as a pin in the same session |
 | D — Triage rules | — | ✅ Done — 43/43 tests; apnea no longer inferred from incident type + priority (6 Sep) |
-| E — LAN transport | — | 🟡 Server complete; mesh client now reconnects forever; phone↔laptop still not run on real hardware |
+| E — LAN transport | — | ✅ **Proven on hardware 6 Sep** — real phone on the hotspot → SOS → live pin on the responder's offline map, no reload. Server fan-out + `GET /sos` snapshot both merged and verified |
 | Expo dev client | — | 🟡 Building (separate; not in the repo) |
 
 Legend: ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
