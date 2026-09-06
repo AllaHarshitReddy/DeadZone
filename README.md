@@ -33,7 +33,7 @@ pnpm install
 
 ```text
 apps/
-  mobile/       Expo app (civilian + responder) — NOT scaffolded here, built separately
+  mobile/       Vite React web app (civilian + responder)
   api/          Node/Express API — placeholder, empty
   dashboard/    placeholder, empty
   ai/           placeholder, empty
@@ -72,10 +72,12 @@ Fictional, Bengaluru-area SOS records for local testing live at
 [`data/seed/sos.json`](data/seed/sos.json). Every record conforms to
 `SOSRequestSchema` from `packages/schema`.
 
-## `apps/mobile` is intentionally untouched
+## `apps/mobile` needs an explicit task before you touch it
 
-The Expo development client is being built separately and is **not**
-part of this scaffold. No Expo files, `package.json`, config, or app
-code have been added to `apps/mobile` tonight, and the directory does
-not even exist yet — do not create or modify anything there without an
-explicit task to do so.
+`apps/mobile` is a Vite + React **web app** — there is no Expo and no
+React Native anywhere in this repo. The phone runs it by opening
+`http://<laptop-IP>:8443` in its browser.
+
+It originated as a Figma Make export and may still be edited there, so
+unannounced changes can be overwritten or conflict. Do not modify
+anything under `apps/mobile` without an explicit task to do so.

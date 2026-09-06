@@ -206,7 +206,7 @@ Example: `http://192.168.1.100:5173`
      - "Connected" badge
      - Peer count: "2 peers" (responder laptop + any other devices)
      - Coverage: GREEN (if signal strong)
-     - Optional sparkline showing RSSI values
+     - Sparkline (decorative — it is keyed to the GREEN/AMBER/RED state, not to measured signal)
 
 2. **Simulate Peer Disconnect**
    - Stop one device from the mesh (e.g., close frontend on a third device)
@@ -216,8 +216,9 @@ Example: `http://192.168.1.100:5173`
 3. **Verify Heartbeat Updates**
    - Look at API server Terminal 3 for heartbeat logs:
      ```
-     [heartbeat] peer-123 lastSeen: 0.5s ago, rssi: -65 dBm
+     [heartbeat] peer-123 lastSeen: 0.5s ago
      ```
+     There is no `rssi` field — the browser cannot measure signal strength.
    - Civilian's MeshStrip should update live (~every 10 seconds)
 
 4. **Responder's Peer Table**
@@ -261,8 +262,9 @@ Example: `http://192.168.1.100:5173`
 
 ### **Coverage Shows RED**
 - Normal if only 1 peer or weak signal
-- Move devices closer (within 10–100 m for BLE + Wi-Fi)
-- Check Terminal 3 for RSSI values
+- Confirm the phone is still on the laptop's hotspot — coverage is derived
+  purely from whether heartbeats are arriving, so RED means "no heartbeat",
+  not "weak signal". Distance is not measured and cannot be diagnosed here.
 
 ### **SOS Doesn't Appear in Responder Dashboard**
 - Check Frontend Terminal 5 for errors

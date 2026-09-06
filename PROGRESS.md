@@ -12,7 +12,7 @@ All frontend and backend services are now wired and committed. The system is rea
 - ✅ **Frontend Service Layer**: MeshClient (WebSocket), LocalDatabase (PouchDB), triageSOSReport (START engine)
 - ✅ **Civilian Flow**: SendingScreen wired to send SOS via mesh with relay animation
 - ✅ **Responder Dashboard**: Loads real SOS from PouchDB; displays in map, list, and triage board views
-- ✅ **Peer Discovery**: MeshStrip shows live peer count and RSSI-based coverage (GREEN/AMBER/RED)
+- ⚠️ **Peer Discovery**: MeshStrip shows a peer count and GREEN/AMBER/RED derived from heartbeat recency. There is no RSSI — a browser cannot read signal strength. Coverage also only recomputes when a heartbeat *arrives*, so it cannot currently degrade.
 - ✅ **Offline Sync**: PouchDB queues locally; CouchDB syncs when online
 - ✅ **Triage Automation**: START protocol runs on every SOS (no LLM in critical path)
 - ✅ **Backend Services**: Express API with WebSocket mesh, tile server, AI proxy
@@ -47,7 +47,7 @@ All frontend and backend services are now wired and committed. The system is rea
 - Expected: Send SOS offline → queued state → reconnect → syncs to CouchDB
 - Test using: DEMO_GUIDE.md, Flow 3
 
-**Flow 4: Coverage Meter** → Verify peer heartbeats & RSSI
+**Flow 4: Coverage Meter** → Verify peer heartbeat recency (no RSSI — it does not exist here)
 - Expected: MeshStrip shows peer count + coverage badge (GREEN/AMBER/RED)
 - Test using: DEMO_GUIDE.md, Flow 4
 
@@ -101,7 +101,7 @@ All frontend and backend services are now wired and committed. The system is rea
 
 - [ ] Full end-to-end test with actual responders/civilians
 - [ ] Coverage verified in actual deployment location
-- [ ] Fallback to hotspot mode tested (if Nearby Connections has issues)
+- [ ] Hotspot path tested end to end (it is the only transport — there is no Nearby Connections fallback)
 - [ ] Demo script finalized with judges' talking points
 
 ---

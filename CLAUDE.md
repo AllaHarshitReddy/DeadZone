@@ -31,9 +31,9 @@ When a choice is between "correct" and "shippable by Tuesday," pick shippable an
 
 | Layer | Choice |
 |---|---|
-| Mobile | Expo / React Native / TypeScript — one app, civilian and responder roles |
-| Transport | Android Nearby Connections (P2P_CLUSTER), Wi-Fi hotspot LAN as fallback |
-| Local data | PouchDB with SQLite adapter |
+| Mobile | Vite / React / TypeScript — a **web app**, served over the LAN and opened in the phone's browser. One app, civilian and responder roles. Not React Native, not Expo. |
+| Transport | WebSocket over the responder's Wi-Fi hotspot LAN. A browser cannot reach Nearby Connections or BLE — see "Transport reality" below. |
+| Local data | Server: PouchDB (`apps/api/.data/local`). Browser: `localStorage` — `apps/mobile/src/services/pouchdb.ts` is named for PouchDB but does not use it. |
 | Sync | PouchDB ↔ CouchDB bidirectional replication |
 | API | Node / Express / TypeScript |
 | AI | Ollama + Phi-4-mini on a laptop edge node, reached over local Wi-Fi |
@@ -50,9 +50,11 @@ These are settled. Do not relitigate them in code or suggestions.
 
 **Life-critical decisions never touch the LLM.** Triage and resource allocation are deterministic rules derived from the START mass-casualty protocol, with explicit reason codes on every output. The LLM is used only for natural-language weather explanation, where fluent phrasing is the point and a wrong word is not fatal. This is a core pitch argument — preserve it.
 
-**Message UUID is the PouchDB document `_id`.** The same SOS arriving via three relay paths collapses to one document automatically. Do not add a separate dedup layer at the DB level.
+**Message UUID is the document `_id`.** The same SOS arriving twice collapses to one document automatically — proven server-side, where the envelope id becomes the PouchDB/CouchDB `_id`. Do not add a separate dedup layer at the DB level.
 
-**Coverage is measured, never estimated.** The coverage meter derives GREEN/AMBER/RED from observed RSSI and peer heartbeats, not from hardware specifications. Never state a fixed range in kilometres anywhere in code comments, UI copy, or docs. BLE is 10–100 m in practice.
+**Coverage is measured, never estimated.** The coverage meter derives GREEN/AMBER/RED from the recency of observed peer heartbeats — nothing else. Never state a fixed range in metres or kilometres anywhere in code comments, UI copy, or docs: the app has no way to measure distance, so any number would be invented.
+
+**Transport reality — read this before writing or saying anything about the mesh.** The app is a web page in a phone browser. That rules out Android Nearby Connections, BLE, and RSSI: the browser exposes none of them. What actually exists is a WebSocket from each phone to the responder's laptop over its Wi-Fi hotspot. `rssi` survives as an optional field on `PeerSchema` and is never populated. Claims about BLE mesh, P2P_CLUSTER, signal strength, or metre ranges are not supported by this code — do not put them in the UI, the docs, or the pitch.
 
 ---
 
@@ -86,7 +88,7 @@ Decided deliberately. If a task seems to need one of these, stop and ask rather 
 
 ```
 apps/
-  mobile/       Expo app — civilian + responder
+  mobile/       Vite React web app — civilian + responder
   api/          Express coordination + sync
   dashboard/    placeholder
   ai/           placeholder
@@ -104,8 +106,8 @@ docs/           strategy, internals, sprint, decisions
 
 ## Guardrails
 
-- **Never modify `apps/mobile` unless a task says so explicitly.** The Expo dev client is built and managed separately; concurrent edits cause native build conflicts.
-- Do not add dependencies beyond what the current task strictly needs. Every dependency is a Gradle risk this week.
+- **Never modify `apps/mobile` unless a task says so explicitly.** It is a Figma Make export (see its Figma plugins in `vite.config.ts`) and may be edited there concurrently; unannounced edits get overwritten or cause conflicts. There is no native build — that was the old reason, and it no longer applies.
+- Do not add dependencies beyond what the current task strictly needs. Every dependency is a Vite bundling risk this week.
 - Do not scaffold ahead. Placeholder directories stay empty until their task arrives.
 - Do not "helpfully" implement cut-list items.
 - When something on the cut list looks necessary, say so and wait — don't decide unilaterally.
@@ -114,7 +116,7 @@ docs/           strategy, internals, sprint, decisions
 
 ## Known risks
 
-- `expo-nearby-connections` is lightly maintained and may fail against the current Expo SDK. Fallback is a thin custom Kotlin module wrapping `ConnectionsClient`.
+- The whole transport is one WebSocket to the laptop. There is no device-to-device path and no relay: if the laptop is unreachable, nothing moves. The "Relay 1 / Relay 2" hop chain in `SendingScreen` is animation, not transport.
 - Offline maps commonly render tiles but no labels, because the style JSON reaches for remote glyphs and sprites. Both must be self-hosted.
 - Android drops Wi-Fi networks with no internet uplink (captive-portal detection). Affects the hotspot demo path.
-- Missing Android nearby-devices runtime permissions make Nearby fail silently rather than throwing.
+- The phone is a browser tab. Backgrounding it, locking the screen, or Chrome discarding the tab kills the WebSocket and any in-flight send — there is no background service to fall back on.
