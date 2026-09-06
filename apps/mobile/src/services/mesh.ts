@@ -23,8 +23,8 @@ export class MeshClient {
   private config: MeshClientConfig;
   private status: MeshStatus = "disconnected";
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
+  private reconnectBaseDelay = 1000;
+  private reconnectMaxDelay = 5000;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalClose = false;
   private pendingAcks = new Map<string, { resolve: () => void; reject: (err: string) => void; timeout: ReturnType<typeof setTimeout> }>();
@@ -154,18 +154,26 @@ export class MeshClient {
     }
   }
 
+  /**
+   * Reconnect forever, with a capped backoff. The mesh link being down for
+   * minutes is a normal demo state (the responder laptop walks out of range,
+   * the hotspot drops) and the queued SOS only drains on the transition back
+   * to "connected" — so giving up would strand every message written while
+   * offline. Backoff tops out at reconnectMaxDelay so recovery stays snappy.
+   */
   private attemptReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`[mesh] reconnecting (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-      this.reconnectTimer = setTimeout(
-        () => this.connect().catch((err) => console.error(err)),
-        this.reconnectDelay * this.reconnectAttempts,
-      );
-    } else {
-      console.error("[mesh] max reconnect attempts reached");
-      this.setStatus("error");
-    }
+    if (this.intentionalClose || this.reconnectTimer) return;
+    this.reconnectAttempts++;
+    const delay = Math.min(
+      this.reconnectBaseDelay * this.reconnectAttempts,
+      this.reconnectMaxDelay,
+    );
+    console.log(`[mesh] reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})...`);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (this.intentionalClose) return;
+      this.connect().catch((err) => console.error("[mesh] reconnect failed:", err));
+    }, delay);
   }
 
   disconnect() {

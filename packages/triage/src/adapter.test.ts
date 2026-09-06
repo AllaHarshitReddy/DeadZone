@@ -49,15 +49,19 @@ test("BREATHING default: assumed true for a non-drowning critical SOS", () => {
     makeSOS({ priority: "critical", incidentType: "fire" }),
   );
   assert.equal(input.isBreathing, true);
-  assert.ok(assumptionsApplied.includes("BREATHING_DEFAULT_TRUE_UNLESS_CRITICAL_DROWNING"));
+  assert.ok(assumptionsApplied.includes("BREATHING_DEFAULT_TRUE"));
 });
 
-test("BREATHING default: assumed false only for critical + drowning", () => {
-  const { input } = adaptToTriageInput(makeSOS({ priority: "critical", incidentType: "drowning" }));
-  assert.equal(input.isBreathing, false);
+test("BREATHING is NEVER inferred false from incident type + priority alone", () => {
+  // A critical drowning must not be pronounced dead by two dropdown values.
+  const { input, assumptionsApplied } = adaptToTriageInput(
+    makeSOS({ priority: "critical", incidentType: "drowning" }),
+  );
+  assert.equal(input.isBreathing, true);
+  assert.ok(assumptionsApplied.includes("BREATHING_DEFAULT_TRUE"));
 });
 
-test("BREATHING default: high-priority drowning alone does not flip to false", () => {
+test("BREATHING default: high-priority drowning also stays true", () => {
   const { input } = adaptToTriageInput(makeSOS({ priority: "high", incidentType: "drowning" }));
   assert.equal(input.isBreathing, true);
 });
@@ -70,14 +74,14 @@ test("description keyword 'not breathing' overrides the default toward false", (
   assert.ok(assumptionsApplied.includes("BREATHING_FALSE_FROM_DESCRIPTION_KEYWORD"));
 });
 
-test("direct victim vitals override both the priority default and the keyword scan", () => {
+test("direct victim vitals override both the default and the keyword scan", () => {
   const vitals: VictimVitals = { breathing: true };
   const { input, assumptionsApplied } = adaptToTriageInput(
     makeSOS({ priority: "critical", incidentType: "drowning", description: "not breathing" }),
     vitals,
   );
   assert.equal(input.isBreathing, true);
-  assert.ok(!assumptionsApplied.includes("BREATHING_DEFAULT_TRUE_UNLESS_CRITICAL_DROWNING"));
+  assert.ok(!assumptionsApplied.includes("BREATHING_DEFAULT_TRUE"));
   assert.ok(!assumptionsApplied.includes("BREATHING_FALSE_FROM_DESCRIPTION_KEYWORD"));
 });
 
@@ -147,8 +151,17 @@ test("end-to-end: a low-priority SOS adapts to GREEN", () => {
   assert.equal(triage(input).category, "minor");
 });
 
-test("end-to-end: a critical drowning SOS adapts to BLACK", () => {
+test("end-to-end: a critical drowning SOS adapts to RED, not BLACK", () => {
+  // The form cannot pronounce death. RED comes from the priority-derived
+  // respiratory rate (32/min) and canFollowCommands=false.
   const { input } = adaptToTriageInput(makeSOS({ priority: "critical", incidentType: "drowning" }));
+  assert.equal(triage(input).category, "immediate");
+});
+
+test("end-to-end: BLACK still reachable, but only from an explicit report", () => {
+  const { input } = adaptToTriageInput(
+    makeSOS({ priority: "critical", description: "bystander says the victim has no pulse" }),
+  );
   assert.equal(triage(input).category, "deceased");
 });
 

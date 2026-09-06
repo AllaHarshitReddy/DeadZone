@@ -50,8 +50,16 @@ export default defineConfig(({ mode }) => {
         // Snapshot of incidents already stored on the command node, so a
         // dashboard opened late or reloaded is not blank.
         '/sos': {
-          target: 'http://localhost:4000',
+          target: process.env.API_SERVER || 'http://localhost:4000',
           changeOrigin: true,
+        },
+        // Offline basemap: the dashboard tile server (apps/dashboard) holds the
+        // Bengaluru tiles, glyphs, sprites and style.json. The phone only ever
+        // talks to this Vite server, which forwards /tiles/* to it on the laptop.
+        '/tiles': {
+          target: process.env.TILE_SERVER || 'http://localhost:3000',
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/tiles/, ''),
         },
       },
     },

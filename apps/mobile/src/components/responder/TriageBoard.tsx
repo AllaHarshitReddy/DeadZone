@@ -20,6 +20,9 @@ export default function TriageBoard({ incidents, onUpdate }: Props) {
   // Local copy so a responder's drag-to-reassign is instant; re-seeded whenever
   // App hands down new data (snapshot refresh, or a fresh envelope off the mesh).
   const [localIncidents, setLocalIncidents] = useState<SOSIncident[]>(incidents);
+  // Re-seed whenever App hands down new data (snapshot refresh, or a fresh
+  // envelope off the mesh). The local copy exists only so a responder's
+  // drag-to-reassign is instant.
   useEffect(() => setLocalIncidents(incidents), [incidents]);
 
   const moveTo = (incidentId: string, cat: TriageCategory) => {

@@ -28,26 +28,31 @@ Do all of this before anyone is watching. Every line is a demo that died once.
 ### Laptop
 
 ```bash
-# 1. CouchDB -- on the demo laptop this is the native "Apache CouchDB"
-#    Windows service, NOT the docker-compose container. It is set to start
-#    automatically, so normally there is nothing to do but verify:
-curl http://localhost:5984/            # must answer, not hang
-# If it does not answer:  Start-Service "Apache CouchDB"
-# infra/docker-compose.yml still describes the same database on the same
-# port, for machines with a working Docker daemon. This one does not have
-# one -- see "If it breaks".
+# 1. CouchDB - runs natively as a Windows service since 6 Sep (Docker Desktop
+#    will not start on this laptop). It is set to start automatically, so
+#    normally there is nothing to do but verify:
+curl http://localhost:5984/            # must answer {"couchdb":"Welcome",...}
+#    If it does not: Start-Service "Apache CouchDB"  (or Services -> start it)
+#    admin / changeme; Fauxton at http://localhost:5984/_utils
+#    infra/docker-compose.yml still describes the same database on the same
+#    port, for machines that do have a working Docker daemon.
 
 # 2. Coordination server + mesh
 cd apps/api && pnpm dev                # logs "listening on 0.0.0.0:4000"
 
-# 3. The app
-cd apps/mobile && pnpm dev             # serves on 0.0.0.0:8443
+# 3. Offline tile server (feeds the responder map)
+cd apps/dashboard && pnpm dev          # "Offline tile server on 0.0.0.0:3000"
+curl -s http://localhost:3000/verify-offline   # must say "ok": true
 
-# 4. Edge AI — note the env vars, they are not optional
+# 4. The app
+cd apps/mobile && pnpm dev             # serves on 0.0.0.0:8443
+                                       # proxies /tiles/* -> :3000
+
+# 5. Edge AI — note the env vars, they are not optional
 OLLAMA_HOST=0.0.0.0 OLLAMA_ORIGINS=* OLLAMA_KEEP_ALIVE=-1 ollama serve
 cd apps/ai && pnpm dev
 
-# 5. Warm the model so the first answer is not the slow one
+# 6. Warm the model so the first answer is not the slow one
 curl -X POST http://localhost:4001/ai/chat \
   -H 'Content-Type: application/json' \
   -d '{"q":"is it going to rain today?"}'
@@ -209,8 +214,14 @@ to another beat and come back; do not wait in silence.
 the cached object. Use it — see Beat 5 — or re-ask with one of the verified
 questions.
 
-**Map renders but has no labels.** Style is reaching for remote fonts. Not
-fixable live. Narrate over it and move on.
+**Responder map is blank or falls back to the sketch grid.** The tile server on
+:3000 is down or was never started. `cd apps/dashboard && pnpm dev`, then switch
+the responder view away and back. The SVG fallback is deliberate — the rest of
+the responder screen (list, triage, pins) still works over it.
+
+**Map renders but has no labels.** Glyphs aren't being served. Check
+`curl http://localhost:3000/glyphs/Noto%20Sans%20Regular/0-255.pbf`. Not fixable
+live — narrate over it and move on.
 
 **Anything stalls past ten seconds.** Cut to the backup video. Rehearse the
 handoff so it looks deliberate.
@@ -229,26 +240,25 @@ Updated 6 Sep. **Do not demo an unproven beat cold.**
 | Same message ID collapses duplicates | ✅ Proven | Sent twice over a real socket, one document resulted |
 | Phone → laptop over LAN | 🟡 Simulated | Full WS round trip over the LAN IP; **not yet run from real phone hardware** |
 | Weather answer offline | ✅ Proven | Ran end to end on `phi4-mini`; 1.0-1.7s warm, against a 4s target |
-| Sync to CouchDB | ✅ Proven | `cd apps/api && pnpm sync-test`: 24 records to a real CouchDB over HTTP, zero loss, zero duplicates, across a cancelled-and-restarted sync handle. A real network cut is still unexercised |
-| Offline map with labels | 🔴 Not built | `data/tiles/glyphs` and `sprites` are empty |
+| Sync to CouchDB | ✅ Proven | Native CouchDB 3.3.0 (Docker abandoned). `cd apps/api && pnpm sync-test`: 24 records across an interrupted PouchDB↔CouchDB replication, zero loss, zero duplicates; seed SOS visible in Fauxton. The interrupt is a cancelled-and-restarted sync handle, not a real network cut |
+| Offline map with labels | ✅ Proven | Bengaluru basemap z0–14 with self-hosted glyphs and sprites, served by `apps/dashboard`, rendering in the responder Map tab with pins anchored on zoom. Confirmed in a browser 6 Sep; not yet on phone hardware |
+| SOS appears live on the responder screen | ✅ Proven | Server fans each stored envelope out to every other connected client; a separately-opened dashboard socket received it, and `GET /sos` snapshots the store for a late joiner. Verified client-to-client 6 Sep; not yet phone-to-laptop |
 | Three-device relay | 🔴 Not built | Needs a second phone; a nice-to-have, not a success criterion |
 
 ### The honest read
 
-Criteria 2 and 3 are in good shape. Criterion 4 closed on 6 Sep: CouchDB
-answers on :5984 and `sync-test` replicated 24 records with nothing lost and
-nothing duplicated.
+Criteria 2, 3 and 4 are proven. Criterion 4 (nothing is lost) is exercised end
+to end: the phone's queue drains on reconnect, and server → CouchDB replication
+survives interruption with zero loss or duplication.
 
-Read that last result precisely. The test cancelled the sync handle and started
-a fresh one; it does not stop the database, and it does not log how much had
-transferred before the cancel. So what is proven is that replication survives
-being cancelled and restarted with no loss or duplication — not that a
-half-transferred batch resumed mid-flight. Good enough for the beat, but do not
-claim more than that to a judge.
+Read the replication result precisely. `sync-test` cancels the sync handle and
+starts a fresh one; it does not stop the database, and it does not log how much
+had transferred before the cancel. What is proven is that replication survives
+being cancelled and restarted cleanly — not that a half-transferred batch
+resumed mid-flight. Good enough for the beat; do not claim more to a judge.
 
-Criterion 1 is the weak one, and it is the single largest risk left: nothing
-has run on real phone hardware. Every LAN result so far is a laptop talking to
-itself.
+Criterion 1 is the last gap and the single largest risk left: **nothing has run
+on real phone hardware.** Every result above is a laptop talking to itself.
 
 **One judgement call to make before the 10th.** The weather cache holds real
 Open-Meteo data for Bengaluru, and right now that is 0.4 mm and GREEN. A calm
@@ -257,9 +267,11 @@ never shows its teeth. Either refresh the cache near the date and take what the
 weather gives you, or prepare a severe-weather cache and say plainly that it is
 illustrative. Do not quietly present fabricated weather as live data.
 
-The offline map is the only piece that is genuinely absent, and it is not one of
-the four success criteria. If time runs short, cut the map before you cut
-anything else.
+The offline map works — a Bengaluru vector basemap rendering with no network,
+in the responder Map tab. It is not one of the four success criteria, and it has
+not survived a full rehearsal or run on the phone yet, so if time runs short cut
+it before anything else (switch the responder off the Map tab; the SVG fallback
+also covers a dead tile server).
 
 ---
 

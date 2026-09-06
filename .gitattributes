@@ -1,0 +1,6 @@
+# Offline map assets are binary — never apply EOL conversion (a stray CRLF
+# corrupts a protobuf tile or glyph range).
+*.pbf   binary
+*.pmtiles binary
+data/tiles/sprites/*.png binary
+data/tiles/sprites/*.json -text

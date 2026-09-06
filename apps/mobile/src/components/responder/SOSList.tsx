@@ -12,6 +12,8 @@ const TRIAGE_ORDER = { RED: 0, YELLOW: 1, GREEN: 2, BLACK: 3 };
 export default function SOSList({ incidents, onSelect }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // No loading here: App owns incident state (command-node snapshot plus live
+  // mesh envelopes) and hands it down, so all three responder views agree.
   const sorted = [...incidents].sort(
     (a, b) => TRIAGE_ORDER[a.triage] - TRIAGE_ORDER[b.triage]
   );

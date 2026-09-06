@@ -23,9 +23,9 @@ import TriageBoard from './components/responder/TriageBoard';
 import LogisticsPanel from './components/responder/LogisticsPanel';
 
 import { MOCK_INCIDENTS, COVERAGE_DEVICES, type SOSIncident, type NetworkStatus, type CoverageStatus } from './data/mockData';
-import { triageSOSReport } from './services/triage';
 import { MeshClient } from './services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from './config';
+import { sosToIncident } from './services/incidents';
 import type { SOSRequest } from '@sankat-setu/schema';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -76,38 +76,6 @@ const NAV_ITEMS: { view: ResponderView; icon: string; label: string }[] = [
 const USE_MOCK_INCIDENTS =
   import.meta.env.VITE_USE_MOCK_DATA === 'true' ||
   (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('mock'));
-
-/**
- * The single SOSRequest -> SOSIncident conversion, replacing three drifting
- * copies that lived in App, SOSList and TriageBoard.
- *
- * Note: `triageReason` is still derived from `priority`, not from the START
- * engine's reasonCode/reasonText, exactly as all three copies did. That gap is
- * tracked separately and is deliberately not changed here.
- */
-function toIncident(sos: SOSRequest): SOSIncident {
-  const triageResult = triageSOSReport(sos);
-  const reason =
-    sos.priority === 'critical' ? 'Critical - needs immediate response' :
-    sos.priority === 'high' ? 'Urgent - needs quick response' :
-    'Stable - can wait';
-  return {
-    id: sos.id,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    people: sos.victimCount || 1,
-    needs: [],
-    severity: sos.priority === 'critical' ? 'critical' : sos.priority === 'high' ? 'moderate' : 'minor',
-    triage: (triageResult.category === 'immediate' ? 'RED' :
-            triageResult.category === 'delayed' ? 'YELLOW' :
-            triageResult.category === 'minor' ? 'GREEN' : 'BLACK') as SOSIncident['triage'],
-    triageReason: reason,
-    timeAgo: '< 1 min',
-    distance: '—',
-    location: sos.description || 'Unknown location',
-    hopStatus: 'delivered' as const,
-  };
-}
 
 function EmptyIncidents() {
   return (
@@ -183,8 +151,12 @@ export default function App() {
   const devices = COVERAGE_DEVICES[coverageStatus];
 
   // Responder view: take a snapshot of what the command node already holds,
-  // then keep up via envelopes the server fans out over the mesh socket. The
-  // civilian side never uses `incidents`, so this only runs for a responder.
+  // then keep up via envelopes the server fans out over the mesh socket.
+  //
+  // Deliberately NOT loadIncidents() from services/incidents.ts: that reads
+  // this browser's localStorage, which on the responder's laptop is empty by
+  // construction -- the phone's records live on the command node, not here.
+  // Conversion still goes through sosToIncident so there is one shared path.
   useEffect(() => {
     if (role !== 'responder') return;
 
@@ -194,7 +166,7 @@ export default function App() {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((docs: SOSRequest[]) => {
         if (cancelled) return;
-        setIncidents(docs.map(toIncident));
+        setIncidents(docs.map(sosToIncident));
         console.log(`[responder] snapshot: ${docs.length} incident(s) from the command node`);
       })
       .catch((err) => console.error('[responder] snapshot failed:', err));
@@ -210,7 +182,9 @@ export default function App() {
         }
         console.log('[responder] envelope received over mesh:', sos.id);
         // Same id collapses to one row, so a redelivered SOS never duplicates.
-        setIncidents((prev) => (prev.some((i) => i.id === sos.id) ? prev : [...prev, toIncident(sos)]));
+        setIncidents((prev) =>
+          prev.some((i) => i.id === sos.id) ? prev : [...prev, sosToIncident(sos)],
+        );
       },
       onError: (err) => console.error('[responder] mesh error:', err),
     });
@@ -417,7 +391,7 @@ export default function App() {
             </div>
           </div>
         </nav>
-        <main className="flex-1 overflow-hidden" style={{ minWidth: 0 }}>
+        <main className="flex-1 overflow-hidden relative" style={{ minWidth: 0 }}>
           {incidents.length === 0 && responderView !== 'logistics' && <EmptyIncidents />}
           {incidents.length > 0 && responderView === 'map' && (
             <MapView incidents={incidents} selectedId={selectedIncidentId} onSelect={setSelectedIncidentId} networkStatus={networkStatus} />

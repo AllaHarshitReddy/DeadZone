@@ -18,6 +18,51 @@ interface Props {
 // shows the stages a message passes through, not intermediate carriers.
 const NODES = ['You', 'Command node', 'Stored'];
 
+const HELP_LABEL: Record<string, string> = {
+  medical: 'medical',
+  rescue: 'rescue',
+  food_water: 'food & water',
+  shelter: 'shelter',
+};
+
+// The civilian never picks an incident type; infer the closest schema value
+// from what they asked for so the responder board isn't a wall of "other".
+function inferIncidentType(helpTypes: string[]): SOSRequest['incidentType'] {
+  if (helpTypes.includes('medical')) return 'medical';
+  if (helpTypes.includes('rescue')) return 'trapped';
+  return 'other';
+}
+
+const BENGALURU = { lat: 12.9716, lng: 77.5946 };
+
+/**
+ * Real device location when the browser will give it (needs a secure context —
+ * works on localhost, not over a plain-http LAN IP on the phone). Otherwise a
+ * point scattered ~1-2 km around the city centre so multiple SOS don't stack on
+ * the exact same pixel on the responder map. TODO(post-sih): proper geolocation
+ * once the app is served over HTTPS or wrapped natively.
+ */
+async function resolveGeo(): Promise<{ lat: number; lng: number; accuracyM?: number }> {
+  if (typeof navigator !== 'undefined' && navigator.geolocation && window.isSecureContext) {
+    try {
+      const pos = await new Promise<GeolocationPosition>((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000, maximumAge: 60000 }),
+      );
+      return {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracyM: pos.coords.accuracy,
+      };
+    } catch {
+      /* fall through to the scattered fallback */
+    }
+  }
+  return {
+    lat: BENGALURU.lat + (Math.random() - 0.5) * 0.03,
+    lng: BENGALURU.lng + (Math.random() - 0.5) * 0.03,
+  };
+}
+
 export default function SendingScreen({ severity, people, helpTypes = [], userName = 'Civilian', onDelivered }: Props) {
   const [litNodes, setLitNodes] = useState(1); // "You" starts lit
   const [phase, setPhase] = useState<'queued' | 'sending' | 'relaying' | 'delivered' | 'failed'>('queued');
@@ -40,18 +85,21 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
       const now = new Date().toISOString();
       const priority =
         severity === 'critical' ? 'critical' : severity === 'urgent' ? 'high' : 'medium';
-      const geo = { lat: 12.9716, lng: 77.5946 }; // TODO(post-sih): real geolocation
+      const geo = await resolveGeo();
 
       // Envelope id doubles as the SOS document id, so the same report arriving
       // by several relay paths collapses to one record on every device.
+      const needs = helpTypes.map((t) => HELP_LABEL[t] ?? t);
       const body: SOSRequest = {
         id: sosId,
         deviceId,
         reporterName: userName,
-        incidentType: 'other',
+        incidentType: inferIncidentType(helpTypes),
         priority,
         victimCount: people,
-        description: `${helpTypes.join(', ')} needed`,
+        description:
+          `${people} ${people === 1 ? 'person' : 'people'} affected` +
+          (needs.length ? ` — needs ${needs.join(', ')}` : ''),
         geo,
         status: 'new',
         createdAt: now,
