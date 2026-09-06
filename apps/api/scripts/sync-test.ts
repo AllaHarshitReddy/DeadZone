@@ -148,20 +148,56 @@ async function waitUntilRemoteSettles(
   );
 }
 
+/**
+ * Remove every document this run created, from BOTH sides, and prove it.
+ *
+ * This used to destroy the local database first and then delete from the
+ * remote with `.catch(() => {})` on each removal. Two consequences: once the
+ * local handle was gone the remote deletions raced against the still-settling
+ * replication, and any that failed did so silently while the run still printed
+ * PASS. Thirty-six orphaned test documents accumulated in CouchDB that way and
+ * surfaced on the responder's map as phantom one-victim incidents.
+ *
+ * So: remote first while the handles are healthy, then verify the deletions
+ * actually took, and fail loudly with the leaked ids if they did not.
+ */
 async function cleanup(
   db: PouchDB.Database<TestDoc>,
   remote: PouchDB.Database<TestDoc>,
   expectedIds: Set<string>,
 ): Promise<void> {
+  const leaked = new Set<string>();
+
+  for (const id of expectedIds) {
+    try {
+      await remote.remove(await remote.get(id));
+    } catch (err) {
+      // 404 means it was never replicated or is already gone -- both fine.
+      if ((err as { status?: number }).status !== 404) leaked.add(id);
+    }
+  }
+
+  // Verify rather than assume. A silent partial cleanup is the whole bug.
+  for (const id of expectedIds) {
+    try {
+      await remote.get(id);
+      leaked.add(id);
+    } catch {
+      // 404 is the success case: the document is gone.
+    }
+  }
+
   await db.destroy().catch(() => {});
-  await Promise.all(
-    [...expectedIds].map((id) =>
-      remote
-        .get(id)
-        .then((doc) => remote.remove(doc))
-        .catch(() => {}),
-    ),
-  );
+
+  if (leaked.size > 0) {
+    console.error(
+      `[sync-test] CLEANUP FAILED -- ${leaked.size} test document(s) still in CouchDB: ${[...leaked].join(", ")}`,
+    );
+    console.error("[sync-test] delete these before demoing; they render as phantom incidents on the map.");
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`[sync-test] cleanup verified -- ${expectedIds.size} test document(s) removed from both sides.`);
 }
 
 async function main(): Promise<void> {
