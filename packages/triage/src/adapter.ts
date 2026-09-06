@@ -43,15 +43,20 @@ import type { TriageInput } from "./triage";
  *     evaluation instead of a possibly-wrong GREEN. Biased against
  *     under-triage, per START's own philosophy.
  *
- *  2. BREATHING_DEFAULT_TRUE_UNLESS_CRITICAL_DROWNING
- *     isBreathing defaults to true (assume breathing) UNLESS incidentType is
- *     "drowning" AND priority is "critical", the one narrow, high-specificity
- *     combination where absent breathing is the modal presentation. Apnea
- *     resolves to BLACK (deceased) — the most severe and *least reversible*
- *     classification — so it must never be assumed from vague or indirect
- *     signals (priority alone, incident type alone). It is only inferred
- *     here from the single case established well enough to trust, or from an
- *     explicit description keyword (see #5).
+ *  2. BREATHING_DEFAULT_TRUE
+ *     isBreathing defaults to true (assume breathing) in every case where no
+ *     direct vitals were recorded. Apnea resolves to BLACK (deceased) — the
+ *     most severe and *least reversible* classification, and one that removes
+ *     the victim from responder allocation entirely (allocate.ts) — so it is
+ *     NEVER inferred from indirect signals. Not from priority, not from
+ *     incident type, not from the two combined. A "critical drowning" is a
+ *     resuscitable presentation far more often than not (cold-water
+ *     submersion is the textbook case), and a bystander picking two dropdown
+ *     values is not asserting death. Absent breathing is only ever taken
+ *     from an explicit description keyword (see #5) or recorded VictimVitals.
+ *     A critical drowning still triages RED via the priority-derived
+ *     respiratory rate and command-following inferences below — it just
+ *     isn't pronounced dead by the form.
  *
  *  3. COMMANDS_FROM_PRIORITY
  *     canFollowCommands := priority !== "critical". A self-reported CRITICAL
@@ -113,14 +118,13 @@ export function adaptToTriageInput(sos: SOSRequest, vitals?: VictimVitals): Adap
   let isBreathing: boolean;
   if (vitals?.breathing !== undefined) {
     isBreathing = vitals.breathing;
-  } else {
-    const criticalDrowning = sos.incidentType === "drowning" && sos.priority === "critical";
-    isBreathing = !criticalDrowning;
-    assumptionsApplied.push("BREATHING_DEFAULT_TRUE_UNLESS_CRITICAL_DROWNING");
-  }
-  if (vitals?.breathing === undefined && NOT_BREATHING_PATTERN.test(text)) {
+  } else if (NOT_BREATHING_PATTERN.test(text)) {
+    // The only path to inferred apnea: the reporter said so in words.
     isBreathing = false;
     assumptionsApplied.push("BREATHING_FALSE_FROM_DESCRIPTION_KEYWORD");
+  } else {
+    isBreathing = true;
+    assumptionsApplied.push("BREATHING_DEFAULT_TRUE");
   }
 
   let canFollowCommands: boolean;

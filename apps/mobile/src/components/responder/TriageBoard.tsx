@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { triageSOSReport, getCategoryColor } from '../../services/triage';
 import { getDatabase } from '../../services/pouchdb';
-import type { SOSRequest } from '@sankat-setu/schema';
+import { loadIncidents } from '../../services/incidents';
 import { TRIAGE_COLOR, NEED_ICONS, type SOSIncident, type TriageCategory } from '../../data/mockData';
 
 interface Props {
@@ -21,54 +20,21 @@ export default function TriageBoard({ incidents, onUpdate }: Props) {
   const [dragOverCat, setDragOverCat] = useState<TriageCategory | null>(null);
   const [localIncidents, setLocalIncidents] = useState<SOSIncident[]>(incidents);
 
-  // Load SOS from PouchDB and compute triage
+  // Load SOS from the local store and compute triage (see services/incidents.ts).
   useEffect(() => {
-    const loadAndTriageIncidents = async () => {
+    const refresh = async () => {
       try {
-        const db = getDatabase();
-        await db.init();
-        const sosRecords = await db.getAllSOS();
-
-        // Convert SOSRequest to SOSIncident and compute triage
-        const triaged: SOSIncident[] = sosRecords.map((sos) => {
-          const triageResult = triageSOSReport(sos);
-          // Show priority level as reason (not medical assumptions)
-          const reason = sos.priority === 'critical' ? 'Critical - needs immediate response' :
-                        sos.priority === 'high' ? 'Urgent - needs quick response' :
-                        'Stable - can wait';
-          return {
-            id: sos.id,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            people: sos.victimCount || 1,
-            needs: [],
-            severity: sos.priority === 'critical' ? 'critical' : sos.priority === 'high' ? 'moderate' : 'minor',
-            triage: (triageResult.category === 'immediate' ? 'RED' :
-                    triageResult.category === 'delayed' ? 'YELLOW' :
-                    triageResult.category === 'minor' ? 'GREEN' : 'BLACK') as TriageCategory,
-            triageReason: reason,
-            timeAgo: '1 min ago',
-            distance: '1.2 km',
-            location: sos.description || 'Unknown location',
-            hopStatus: 'delivered' as const,
-          };
-        });
-
-        setLocalIncidents(triaged);
+        setLocalIncidents(await loadIncidents());
       } catch (err) {
         console.error('[TriageBoard] failed to load incidents:', err);
         setLocalIncidents(incidents);
       }
     };
 
-    loadAndTriageIncidents();
+    refresh();
 
-    // Subscribe to DB changes
     const db = getDatabase();
-    const unsubscribe = db.watchChanges(() => {
-      loadAndTriageIncidents();
-    });
-
+    const unsubscribe = db.watchChanges(() => refresh());
     return unsubscribe;
   }, [incidents]);
 

@@ -17,6 +17,7 @@
     "@sankat-setu/schema": "workspace:*",
     "@sankat-setu/comms": "workspace:*",
     "@sankat-setu/triage": "workspace:*",
+    "maplibre-gl": "^4.7.1",
     "pouchdb": "^9.0.0",
     "zod": "^4.5.4"
   },

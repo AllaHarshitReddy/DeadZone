@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getDatabase } from '../../services/pouchdb';
-import { triageSOSReport } from '../../services/triage';
-import type { SOSRequest } from '@sankat-setu/schema';
+import { loadIncidents } from '../../services/incidents';
 import { TRIAGE_COLOR, NEED_ICONS, type SOSIncident } from '../../data/mockData';
 
 interface Props {
@@ -15,50 +14,20 @@ export default function SOSList({ incidents: initialIncidents, onSelect }: Props
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [localIncidents, setLocalIncidents] = useState<SOSIncident[]>(initialIncidents ?? []);
 
-  // Load SOS from PouchDB
+  // Load SOS from the local store (see services/incidents.ts).
   useEffect(() => {
-    const loadIncidents = async () => {
+    const refresh = async () => {
       try {
-        const db = getDatabase();
-        await db.init();
-        const sosRecords = await db.getAllSOS();
-
-        const converted: SOSIncident[] = sosRecords.map((sos) => {
-          const triageResult = triageSOSReport(sos);
-          // Show priority level as reason (not medical assumptions)
-          const reason = sos.priority === 'critical' ? 'Critical - needs immediate response' :
-                        sos.priority === 'high' ? 'Urgent - needs quick response' :
-                        'Stable - can wait';
-          return {
-            id: sos.id,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            people: sos.victimCount || 1,
-            needs: [],
-            severity: (sos.priority === 'critical' ? 'critical' :
-                      sos.priority === 'high' ? 'moderate' : 'minor') as any,
-            triage: (triageResult.category === 'immediate' ? 'RED' :
-                    triageResult.category === 'delayed' ? 'YELLOW' :
-                    triageResult.category === 'minor' ? 'GREEN' : 'BLACK') as any,
-            triageReason: reason,
-            timeAgo: '< 1 min',
-            distance: '1.2 km',
-            location: sos.description || 'Unknown',
-            hopStatus: 'delivered' as const,
-          };
-        });
-
-        setLocalIncidents(converted);
+        setLocalIncidents(await loadIncidents());
       } catch (err) {
         console.error('[SOSList] failed to load:', err);
       }
     };
 
-    loadIncidents();
+    refresh();
 
-    // Subscribe to DB changes
     const db = getDatabase();
-    const unsubscribe = db.watchChanges(() => loadIncidents());
+    const unsubscribe = db.watchChanges(() => refresh());
     return unsubscribe;
   }, []);
 

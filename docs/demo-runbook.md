@@ -28,21 +28,28 @@ Do all of this before anyone is watching. Every line is a demo that died once.
 ### Laptop
 
 ```bash
-# 1. CouchDB
-cd infra && docker compose up -d
-curl http://localhost:5984/            # must answer, not hang
+# 1. CouchDB — runs natively as a Windows service since 6 Sep (Docker Desktop
+#    won't start on this laptop). It's already up after boot; just check it.
+curl http://localhost:5984/            # must answer {"couchdb":"Welcome",...}
+#    If it doesn't: Services -> "Apache CouchDB" -> Start.
+#    admin / changeme; Fauxton at http://localhost:5984/_utils
 
 # 2. Coordination server + mesh
 cd apps/api && pnpm dev                # logs "listening on 0.0.0.0:4000"
 
-# 3. The app
-cd apps/mobile && pnpm dev             # serves on 0.0.0.0:8443
+# 3. Offline tile server (feeds the responder map)
+cd apps/dashboard && pnpm dev          # "Offline tile server on 0.0.0.0:3000"
+curl -s http://localhost:3000/verify-offline   # must say "ok": true
 
-# 4. Edge AI — note the env vars, they are not optional
+# 4. The app
+cd apps/mobile && pnpm dev             # serves on 0.0.0.0:8443
+                                       # proxies /tiles/* -> :3000
+
+# 5. Edge AI — note the env vars, they are not optional
 OLLAMA_HOST=0.0.0.0 OLLAMA_ORIGINS=* OLLAMA_KEEP_ALIVE=-1 ollama serve
 cd apps/ai && pnpm dev
 
-# 5. Warm the model so the first answer is not the slow one
+# 6. Warm the model so the first answer is not the slow one
 curl -X POST http://localhost:4001/ai/chat \
   -H 'Content-Type: application/json' \
   -d '{"q":"is it going to rain today?"}'
@@ -198,8 +205,14 @@ to another beat and come back; do not wait in silence.
 the cached object. Use it — see Beat 5 — or re-ask with one of the verified
 questions.
 
-**Map renders but has no labels.** Style is reaching for remote fonts. Not
-fixable live. Narrate over it and move on.
+**Responder map is blank or falls back to the sketch grid.** The tile server on
+:3000 is down or was never started. `cd apps/dashboard && pnpm dev`, then switch
+the responder view away and back. The SVG fallback is deliberate — the rest of
+the responder screen (list, triage, pins) still works over it.
+
+**Map renders but has no labels.** Glyphs aren't being served. Check
+`curl http://localhost:3000/glyphs/Noto%20Sans%20Regular/0-255.pbf`. Not fixable
+live — narrate over it and move on.
 
 **Anything stalls past ten seconds.** Cut to the backup video. Rehearse the
 handoff so it looks deliberate.
@@ -218,15 +231,17 @@ Updated 5 Sep. **Do not demo an unproven beat cold.**
 | Same message ID collapses duplicates | ✅ Proven | Sent twice over a real socket, one document resulted |
 | Phone → laptop over LAN | 🟡 Simulated | Full WS round trip over the LAN IP; **not yet run from real phone hardware** |
 | Weather answer offline | ✅ Proven | Ran end to end on `phi4-mini`; 1.0-1.7s warm, against a 4s target |
-| Sync to CouchDB | 🔴 Unproven | Docker Desktop will not start; last hop never exercised |
-| Offline map with labels | 🔴 Not built | `data/tiles/glyphs` and `sprites` are empty |
+| Sync to CouchDB | ✅ Proven | Native CouchDB 3.3.0 (Docker abandoned); `pnpm sync-test` passed 5/5 — 24 records across an interrupted PouchDB↔CouchDB replication, zero loss, zero duplicates; 20 seed SOS visible in Fauxton |
+| Offline map with labels | 🟢 Working | Bengaluru basemap z0–14 + self-hosted glyphs/sprites; served by `apps/dashboard`, shown in the responder Map tab (dark, real SOS coords, pins anchored on zoom). Confirmed in a browser 6 Sep. Not yet run on real phone hardware or in a rehearsal. |
 | Three-device relay | 🔴 Not built | Needs a second phone; a nice-to-have, not a success criterion |
 
 ### The honest read
 
-Criteria 1, 2 and 3 are in good shape. Criterion 4 is half proven — the phone's
-queue drains and that is tested, but the server → CouchDB hop has never run
-because Docker is down.
+Criteria 2, 3 and 4 are proven. Criterion 4 (nothing is lost) is now fully
+exercised end to end: the phone's queue drains on reconnect (tested), and the
+server → CouchDB replication survives interruption with zero loss (sync-test
+5/5). Criterion 1 is the last gap — the phone → laptop hop is simulated but has
+not run from real phone hardware.
 
 **One judgement call to make before the 10th.** The weather cache holds real
 Open-Meteo data for Bengaluru, and right now that is 0.4 mm and GREEN. A calm
@@ -235,9 +250,11 @@ never shows its teeth. Either refresh the cache near the date and take what the
 weather gives you, or prepare a severe-weather cache and say plainly that it is
 illustrative. Do not quietly present fabricated weather as live data.
 
-The offline map is the only piece that is genuinely absent, and it is not one of
-the four success criteria. If time runs short, cut the map before you cut
-anything else.
+The offline map works — a Bengaluru vector basemap rendering with no network,
+in the responder Map tab. It is not one of the four success criteria, and it has
+not survived a full rehearsal or run on the phone yet, so if time runs short cut
+it before anything else (switch the responder off the Map tab; the SVG fallback
+also covers a dead tile server).
 
 ---
 

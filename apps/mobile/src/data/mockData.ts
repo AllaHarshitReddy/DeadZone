@@ -6,8 +6,12 @@ export type NetworkStatus = 'offline' | 'online';
 
 export interface SOSIncident {
   id: string;
+  /** Percentage position on the legacy SVG map mock. Kept as a fallback. */
   x: number;
   y: number;
+  /** Real coordinates, when known — the MapLibre map places pins with these. */
+  lat?: number;
+  lng?: number;
   people: number;
   needs: NeedType[];
   severity: 'critical' | 'moderate' | 'minor';
@@ -24,6 +28,7 @@ export const MOCK_INCIDENTS: SOSIncident[] = [
   {
     id: 'sos-001',
     x: 22, y: 38,
+    lat: 12.9767, lng: 77.5713,
     people: 7,
     needs: ['medical', 'rescue'],
     severity: 'critical',
@@ -37,6 +42,7 @@ export const MOCK_INCIDENTS: SOSIncident[] = [
   {
     id: 'sos-002',
     x: 58, y: 52,
+    lat: 12.9352, lng: 77.6245,
     people: 3,
     needs: ['rescue', 'shelter'],
     severity: 'critical',
@@ -50,6 +56,7 @@ export const MOCK_INCIDENTS: SOSIncident[] = [
   {
     id: 'sos-003',
     x: 38, y: 72,
+    lat: 12.9719, lng: 77.6412,
     people: 2,
     needs: ['medical'],
     severity: 'moderate',
@@ -64,6 +71,7 @@ export const MOCK_INCIDENTS: SOSIncident[] = [
   {
     id: 'sos-004',
     x: 76, y: 28,
+    lat: 12.9756, lng: 77.6068,
     people: 4,
     needs: ['food_water', 'shelter'],
     severity: 'minor',
@@ -77,6 +85,7 @@ export const MOCK_INCIDENTS: SOSIncident[] = [
   {
     id: 'sos-005',
     x: 14, y: 62,
+    lat: 12.9507, lng: 77.5848,
     people: 1,
     needs: ['medical'],
     severity: 'critical',
@@ -90,6 +99,7 @@ export const MOCK_INCIDENTS: SOSIncident[] = [
   {
     id: 'sos-006',
     x: 68, y: 76,
+    lat: 12.9304, lng: 77.6784,
     people: 12,
     needs: ['medical', 'rescue', 'food_water'],
     severity: 'critical',
