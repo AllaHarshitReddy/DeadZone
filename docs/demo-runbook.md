@@ -28,9 +28,14 @@ Do all of this before anyone is watching. Every line is a demo that died once.
 ### Laptop
 
 ```bash
-# 1. CouchDB
-cd infra && docker compose up -d
+# 1. CouchDB -- on the demo laptop this is the native "Apache CouchDB"
+#    Windows service, NOT the docker-compose container. It is set to start
+#    automatically, so normally there is nothing to do but verify:
 curl http://localhost:5984/            # must answer, not hang
+# If it does not answer:  Start-Service "Apache CouchDB"
+# infra/docker-compose.yml still describes the same database on the same
+# port, for machines with a working Docker daemon. This one does not have
+# one -- see "If it breaks".
 
 # 2. Coordination server + mesh
 cd apps/api && pnpm dev                # logs "listening on 0.0.0.0:4000"
@@ -190,6 +195,12 @@ correctly — the record is safe. Say so out loud, it is a feature:
 > "No relay in range. It is holding it. Watch what happens when one appears."
 Then reconnect and let it drain. This is a better demo than the happy path.
 
+**CouchDB is not answering on :5984.** `Start-Service "Apache CouchDB"`. Do not
+reach for `docker compose up` — the Docker daemon on this laptop is unreachable
+(both the `desktop-linux` and `default` contexts fail to open their named pipe),
+so that command errors out and costs you a minute you do not have. Only Beat 6
+needs CouchDB; every earlier beat runs without it.
+
 **Weather question hangs.** Model was not warm. Cold start measured at 5.8s
 against 1.4s warm, so this is what the pre-flight warm-up call prevents. Move on
 to another beat and come back; do not wait in silence.
@@ -208,7 +219,7 @@ handoff so it looks deliberate.
 
 ## Status — proven vs. unproven
 
-Updated 5 Sep. **Do not demo an unproven beat cold.**
+Updated 6 Sep. **Do not demo an unproven beat cold.**
 
 | Beat | State | Evidence |
 |---|---|---|
@@ -218,15 +229,26 @@ Updated 5 Sep. **Do not demo an unproven beat cold.**
 | Same message ID collapses duplicates | ✅ Proven | Sent twice over a real socket, one document resulted |
 | Phone → laptop over LAN | 🟡 Simulated | Full WS round trip over the LAN IP; **not yet run from real phone hardware** |
 | Weather answer offline | ✅ Proven | Ran end to end on `phi4-mini`; 1.0-1.7s warm, against a 4s target |
-| Sync to CouchDB | 🔴 Unproven | Docker Desktop will not start; last hop never exercised |
+| Sync to CouchDB | ✅ Proven | `cd apps/api && pnpm sync-test`: 24 records to a real CouchDB over HTTP, zero loss, zero duplicates, across a cancelled-and-restarted sync handle. A real network cut is still unexercised |
 | Offline map with labels | 🔴 Not built | `data/tiles/glyphs` and `sprites` are empty |
 | Three-device relay | 🔴 Not built | Needs a second phone; a nice-to-have, not a success criterion |
 
 ### The honest read
 
-Criteria 1, 2 and 3 are in good shape. Criterion 4 is half proven — the phone's
-queue drains and that is tested, but the server → CouchDB hop has never run
-because Docker is down.
+Criteria 2 and 3 are in good shape. Criterion 4 closed on 6 Sep: CouchDB
+answers on :5984 and `sync-test` replicated 24 records with nothing lost and
+nothing duplicated.
+
+Read that last result precisely. The test cancelled the sync handle and started
+a fresh one; it does not stop the database, and it does not log how much had
+transferred before the cancel. So what is proven is that replication survives
+being cancelled and restarted with no loss or duplication — not that a
+half-transferred batch resumed mid-flight. Good enough for the beat, but do not
+claim more than that to a judge.
+
+Criterion 1 is the weak one, and it is the single largest risk left: nothing
+has run on real phone hardware. Every LAN result so far is a laptop talking to
+itself.
 
 **One judgement call to make before the 10th.** The weather cache holds real
 Open-Meteo data for Bengaluru, and right now that is 0.4 mm and GREEN. A calm
