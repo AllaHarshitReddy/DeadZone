@@ -47,6 +47,14 @@ export default defineConfig(({ mode }) => {
           ws: true,
           changeOrigin: true,
         },
+        // Offline basemap: the dashboard tile server (apps/dashboard) holds the
+        // Bengaluru tiles, glyphs, sprites and style.json. The phone only ever
+        // talks to this Vite server, which forwards /tiles/* to it on the laptop.
+        '/tiles': {
+          target: process.env.TILE_SERVER || 'http://localhost:3000',
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/tiles/, ''),
+        },
       },
     },
     preview: {
