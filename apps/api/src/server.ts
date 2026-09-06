@@ -35,6 +35,22 @@ async function main() {
     .on("paused", (err) => console.log("[sync] paused:", err))
     .on("active", () => console.log("[sync] active"));
 
+  // Snapshot for a dashboard that connects after an SOS was already sent, or
+  // that reloads mid-incident. The mesh fan-out is the live path; this is what
+  // fills the screen on first paint.
+  app.get("/sos", async (_req, res) => {
+    try {
+      const result = await db.allDocs({ include_docs: true });
+      const docs = result.rows
+        .map((row) => row.doc)
+        .filter((doc) => Boolean(doc) && !String((doc as { _id: string })._id).startsWith("_design/"));
+      res.json(docs);
+    } catch (err) {
+      console.error("[api] /sos failed:", err);
+      res.status(500).json({ error: "Could not read the local store" });
+    }
+  });
+
   // Peer table and heartbeat
   const peerTable = new PeerTable();
   const lanIp = getLanIp() ?? "localhost";

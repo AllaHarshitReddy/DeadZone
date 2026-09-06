@@ -88,6 +88,14 @@ export class MeshClient {
           ack.resolve();
           this.pendingAcks.delete(msg.envelopeId);
         }
+      } else if (msg.type === "envelope") {
+        // Fanned out by the server when another client sent an SOS.
+        const parsed = EnvelopeSchema.safeParse(msg.envelope);
+        if (parsed.success) {
+          this.config.onEnvelope?.(parsed.data);
+        } else {
+          console.warn("[mesh] dropped a malformed envelope broadcast");
+        }
       } else if (msg.type === "error") {
         console.error("[mesh] server error:", msg.message);
         this.config.onError?.(msg.message);

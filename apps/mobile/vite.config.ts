@@ -47,6 +47,12 @@ export default defineConfig(({ mode }) => {
           ws: true,
           changeOrigin: true,
         },
+        // Snapshot of incidents already stored on the command node, so a
+        // dashboard opened late or reloaded is not blank.
+        '/sos': {
+          target: 'http://localhost:4000',
+          changeOrigin: true,
+        },
       },
     },
     preview: {

@@ -23,8 +23,10 @@ import TriageBoard from './components/responder/TriageBoard';
 import LogisticsPanel from './components/responder/LogisticsPanel';
 
 import { MOCK_INCIDENTS, COVERAGE_DEVICES, type SOSIncident, type NetworkStatus, type CoverageStatus } from './data/mockData';
-import { getDatabase } from './services/pouchdb';
 import { triageSOSReport } from './services/triage';
+import { MeshClient } from './services/mesh';
+import { RESPONDER_CONFIG, getOrCreateDeviceId } from './config';
+import type { SOSRequest } from '@sankat-setu/schema';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Role = 'civilian' | 'responder' | null;
@@ -64,6 +66,65 @@ const NAV_ITEMS: { view: ResponderView; icon: string; label: string }[] = [
   { view: 'logistics', icon: '▦', label: 'LOGISTICS' },
 ];
 
+/**
+ * Fabricated incidents are a local development aid and must never reach a
+ * demo: on screen they are indistinguishable from real ones, and several of
+ * them carry convincing-looking START reason strings. Opt in explicitly with
+ * `?mock=1` in the URL or VITE_USE_MOCK_DATA=true at build time. With no flag
+ * the dashboard starts empty and stays empty until a real SOS arrives.
+ */
+const USE_MOCK_INCIDENTS =
+  import.meta.env.VITE_USE_MOCK_DATA === 'true' ||
+  (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('mock'));
+
+/**
+ * The single SOSRequest -> SOSIncident conversion, replacing three drifting
+ * copies that lived in App, SOSList and TriageBoard.
+ *
+ * Note: `triageReason` is still derived from `priority`, not from the START
+ * engine's reasonCode/reasonText, exactly as all three copies did. That gap is
+ * tracked separately and is deliberately not changed here.
+ */
+function toIncident(sos: SOSRequest): SOSIncident {
+  const triageResult = triageSOSReport(sos);
+  const reason =
+    sos.priority === 'critical' ? 'Critical - needs immediate response' :
+    sos.priority === 'high' ? 'Urgent - needs quick response' :
+    'Stable - can wait';
+  return {
+    id: sos.id,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    people: sos.victimCount || 1,
+    needs: [],
+    severity: sos.priority === 'critical' ? 'critical' : sos.priority === 'high' ? 'moderate' : 'minor',
+    triage: (triageResult.category === 'immediate' ? 'RED' :
+            triageResult.category === 'delayed' ? 'YELLOW' :
+            triageResult.category === 'minor' ? 'GREEN' : 'BLACK') as SOSIncident['triage'],
+    triageReason: reason,
+    timeAgo: '< 1 min',
+    distance: '—',
+    location: sos.description || 'Unknown location',
+    hopStatus: 'delivered' as const,
+  };
+}
+
+function EmptyIncidents() {
+  return (
+    <div className="h-full flex flex-col items-center justify-center gap-2" style={{ background: '#0A0A0E' }}>
+      <div
+        className="text-[#F0F0F6] font-black tracking-widest"
+        style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '22px' }}
+      >
+        NO ACTIVE INCIDENTS
+      </div>
+      <div className="text-[#5A5A6A]" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px' }}>
+        Connected to the command node · waiting for an SOS
+      </div>
+    </div>
+  );
+}
+
 const PHONE_SHELL: React.CSSProperties = {
   width: '100%',
   maxWidth: 390,
@@ -90,7 +151,7 @@ export default function App() {
   const [showToast, setShowToast] = useState(false);
 
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
-  const [incidents, setIncidents] = useState<SOSIncident[]>(MOCK_INCIDENTS);
+  const [incidents, setIncidents] = useState<SOSIncident[]>(USE_MOCK_INCIDENTS ? MOCK_INCIDENTS : []);
   const [sosPending, setSosPending] = useState(false);
   const [sosData, setSOSData] = useState<Partial<SOSData>>({});
 
@@ -121,53 +182,45 @@ export default function App() {
 
   const devices = COVERAGE_DEVICES[coverageStatus];
 
-  // Load incidents from PouchDB
+  // Responder view: take a snapshot of what the command node already holds,
+  // then keep up via envelopes the server fans out over the mesh socket. The
+  // civilian side never uses `incidents`, so this only runs for a responder.
   useEffect(() => {
-    const loadIncidents = async () => {
-      try {
-        const db = getDatabase();
-        await db.init();
-        const sosRecords = await db.getAllSOS();
+    if (role !== 'responder') return;
 
-        const triaged: SOSIncident[] = sosRecords.map((sos) => {
-          const triageResult = triageSOSReport(sos);
-          // Show priority level as reason (not medical assumptions)
-          const reason = sos.priority === 'critical' ? 'Critical - needs immediate response' :
-                        sos.priority === 'high' ? 'Urgent - needs quick response' :
-                        'Stable - can wait';
-          return {
-            id: sos.id,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            people: sos.victimCount || 1,
-            needs: [],
-            severity: sos.priority === 'critical' ? 'critical' : sos.priority === 'high' ? 'moderate' : 'minor',
-            triage: (triageResult.category === 'immediate' ? 'RED' :
-                    triageResult.category === 'delayed' ? 'YELLOW' :
-                    triageResult.category === 'minor' ? 'GREEN' : 'BLACK') as any,
-            triageReason: reason,
-            timeAgo: '1 min ago',
-            distance: '1.2 km',
-            location: sos.description || 'Unknown location',
-            hopStatus: 'delivered' as const,
-          };
-        });
+    let cancelled = false;
 
-        if (triaged.length > 0) {
-          setIncidents(triaged);
+    fetch('/sos')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((docs: SOSRequest[]) => {
+        if (cancelled) return;
+        setIncidents(docs.map(toIncident));
+        console.log(`[responder] snapshot: ${docs.length} incident(s) from the command node`);
+      })
+      .catch((err) => console.error('[responder] snapshot failed:', err));
+
+    const client = new MeshClient({
+      meshUrl: RESPONDER_CONFIG.meshUrl,
+      deviceId: getOrCreateDeviceId(),
+      onEnvelope: (envelope) => {
+        const sos = envelope.body as SOSRequest | undefined;
+        if (!sos || typeof sos.id !== 'string') {
+          console.warn('[responder] envelope carried no usable SOS body');
+          return;
         }
-      } catch (err) {
-        console.error('[App] failed to load incidents:', err);
-      }
+        console.log('[responder] envelope received over mesh:', sos.id);
+        // Same id collapses to one row, so a redelivered SOS never duplicates.
+        setIncidents((prev) => (prev.some((i) => i.id === sos.id) ? prev : [...prev, toIncident(sos)]));
+      },
+      onError: (err) => console.error('[responder] mesh error:', err),
+    });
+    client.connect().catch((err) => console.error('[responder] mesh connect failed:', err));
+
+    return () => {
+      cancelled = true;
+      client.disconnect();
     };
-
-    loadIncidents();
-
-    // Subscribe to DB changes
-    const db = getDatabase();
-    const unsubscribe = db.watchChanges(() => loadIncidents());
-    return unsubscribe;
-  }, []);
+  }, [role]);
 
   /* ── Login ───────────────────────────────────────────────────────────────── */
   if (!user) {
@@ -365,13 +418,16 @@ export default function App() {
           </div>
         </nav>
         <main className="flex-1 overflow-hidden" style={{ minWidth: 0 }}>
-          {responderView === 'map' && (
+          {incidents.length === 0 && responderView !== 'logistics' && <EmptyIncidents />}
+          {incidents.length > 0 && responderView === 'map' && (
             <MapView incidents={incidents} selectedId={selectedIncidentId} onSelect={setSelectedIncidentId} networkStatus={networkStatus} />
           )}
-          {responderView === 'sos-list' && (
+          {incidents.length > 0 && responderView === 'sos-list' && (
             <SOSList incidents={incidents} onSelect={id => { setSelectedIncidentId(id); setResponderView('map'); }} />
           )}
-          {responderView === 'triage' && <TriageBoard incidents={incidents} onUpdate={setIncidents} />}
+          {incidents.length > 0 && responderView === 'triage' && (
+            <TriageBoard incidents={incidents} onUpdate={setIncidents} />
+          )}
           {responderView === 'logistics' && <LogisticsPanel />}
         </main>
       </div>

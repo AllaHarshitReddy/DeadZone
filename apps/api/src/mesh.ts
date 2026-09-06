@@ -2,9 +2,7 @@ import type PouchDB from "pouchdb";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { Server as HttpServer } from "http";
 import {
-  deserializeEnvelope,
   tryDeserializeEnvelope,
-  serializeEnvelope,
   PeerTable,
   type PeerHeartbeatPayload,
 } from "@sankat-setu/comms";
@@ -15,8 +13,12 @@ import type { Envelope, SOSRequest } from "@sankat-setu/schema";
  * message passing. One relay hop maximum (see CLAUDE.md cut list).
  *
  * Every message is an Envelope; the server validates it against the schema,
- * writes it to PouchDB using the envelope.id as _id (dedup for free), and
- * echoes an ACK.
+ * writes it to PouchDB using the envelope.id as _id (dedup for free), echoes
+ * an ACK to the sender, and fans the envelope out to every other connected
+ * client. That fan-out is what puts an SOS on the responder's screen: the
+ * dashboard holds a socket like any other client and renders what arrives.
+ * It is server-to-client delivery, not a device-to-device hop -- relaying of
+ * any kind remains on the cut list.
  *
  * Broadcast: peers receive heartbeats from the responder every 10 seconds,
  * carrying its current geo + responder status. Used by coverage.ts to
@@ -35,15 +37,19 @@ export interface MeshServerConfig {
 export function attachMeshServer(httpServer: HttpServer, config: MeshServerConfig): WebSocketServer {
   const wss = new WebSocketServer({ server: httpServer, path: "/mesh" });
 
+  const clients = new Set<WebSocket>();
+
   wss.on("connection", (ws) => {
-    console.log("[mesh] client connected");
-    handleClient(ws, config);
+    clients.add(ws);
+    console.log(`[mesh] client connected (${clients.size} connected)`);
+    ws.on("close", () => clients.delete(ws));
+    handleClient(ws, config, clients);
   });
 
   return wss;
 }
 
-async function handleClient(ws: WebSocket, config: MeshServerConfig) {
+async function handleClient(ws: WebSocket, config: MeshServerConfig, clients: Set<WebSocket>) {
   // Register this client as a peer and start receiving heartbeats from the
   // local peer table (which broadcasts heartbeats on a 10s interval).
   let clientDeviceId: string | null = null;
@@ -107,8 +113,21 @@ async function handleClient(ws: WebSocket, config: MeshServerConfig) {
       }
     }
 
-    // Echo an ACK
+    // Echo an ACK to the sender.
     ws.send(JSON.stringify({ type: "ack", envelopeId: envelope.id }));
+
+    // Then hand it to everyone else. Wrapped in an outer {type:"envelope"}
+    // rather than sent bare: Envelope.type has its own vocabulary ("sos",
+    // "ack", ...) that would collide with the control messages above.
+    const payload = JSON.stringify({ type: "envelope", envelope });
+    let fannedOut = 0;
+    for (const peer of clients) {
+      if (peer !== ws && peer.readyState === 1) {
+        peer.send(payload);
+        fannedOut++;
+      }
+    }
+    console.log(`[mesh] stored ${envelope.id}, fanned out to ${fannedOut} other client(s)`);
   });
 
   ws.on("close", () => {
