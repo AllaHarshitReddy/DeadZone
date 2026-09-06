@@ -327,8 +327,18 @@ Five clean consecutive runs before the 10th. Record the fifth as the backup.
 
 | # | Date | Result | What broke |
 |---|---|---|---|
-| 1 | | | |
-| 2 | | | |
+| 1 | 6 Sep, evening | ✅ Clean | Nothing. First run on the merged build: real offline basemap, live phone SOS landing as a pin, all beats through. |
+| 2 | 6 Sep, evening | ✅ Clean | Nothing. Run straight after 1, no restarts between them. |
 | 3 | | | |
 | 4 | | | |
 | 5 | | | |
+
+Wall-clock durations were not captured for runs 1 and 2 — time them from run 3
+on, since ninety seconds is the constraint and "clean" is not the same as
+"in time".
+
+**Both runs inherited a warm, already-pinned model and a browser-cached map.**
+A run started from cold — which is what demo morning is — has not been rehearsed
+yet. Do at least one of runs 3–5 from a full cold start, following the pre-flight
+top to bottom, so the ~58s model load and the first uncached map paint are inside
+a run you have actually timed.
