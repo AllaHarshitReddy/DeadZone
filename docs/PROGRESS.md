@@ -214,6 +214,40 @@ Note: `pnpm seed` can't run while the api server holds the lock on
 `.data/local` — run it with the server stopped, or (as done here) write the
 seed docs straight to CouchDB and let them replicate down.
 
+**Bug hunt — full read of every package.** Ten real findings. Fixed the four
+that matter for the demo (commits `787fc5b`, `6ade578`, `d85eb7d`):
+
+1. 🔴 **Mesh client gave up after ~15s offline** and never retried — the
+   queued-SOS drain only fires on reconnect, so any outage longer than that
+   silently stranded every message. That outage *is* Beat 6. Now reconnects
+   forever, backoff capped at 5s.
+2. 🔴 **Critical drowning auto-classified DECEASED** and excluded from
+   allocation — apnea inferred from `incidentType + priority`. Now apnea only
+   comes from an explicit "not breathing" phrase or recorded vitals. Seed
+   distribution: immediate 8 / delayed 9 / minor 3 / deceased 0.
+3. 🟠 Phone SOS showed "medical, rescue needed" as the location and had empty
+   needs chips — `incidents.ts` now parses needs from the text and derives a
+   real location label; `SendingScreen` writes a readable description and
+   infers an incident type.
+4. 🟠 Every phone SOS pinned to the exact city centre — now real geolocation
+   when the browser allows it (secure context only), else scattered ~1-2 km.
+
+**Still open (not fixed — lower risk, listed so they aren't lost):**
+
+5. `apps/api/src/mesh.ts:83` writes `envelope.body` into the SOS DB with no
+   schema check and no `envelope.type` check — any envelope type gets stored.
+6. `mesh.ts:55` `peerTable.onHeartbeat()` registered per WS connection, never
+   removed (`PeerTable` has no `off`) — a 10s callback leaks on every reconnect.
+7. `packages/comms/peers.ts` never evicts peers — MeshStrip's device count
+   only grows.
+8. `SendingScreen` opens a second `MeshClient` alongside `MeshStrip`'s — two
+   sockets per phone; the SOS and the queue drain go over different ones.
+9. `PeerTable.updatePeer` types its arg `Partial<Peer>` but `PeerSchema.parse`
+   requires `isResponder` — a legal-looking call throws at runtime.
+10. `computeCoverage` takes the first `isResponder` peer, not the freshest.
+11. ⚪ Weather cache runs out 2026-09-11T23:00 — fine for the 10th (~32h of
+    window), fails loudly (`pnpm fetch-weather`) after. Refresh near the date.
+
 ### 4 Sep
 - Repo scaffolded: schema, seed data, cut list, compose file
 - `pnpm typecheck` passing across three packages
