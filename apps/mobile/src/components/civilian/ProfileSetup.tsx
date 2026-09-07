@@ -1,5 +1,35 @@
 import { useState } from 'react';
 
+/**
+ * Built, reachable as the 'profile-setup' CivilianView, and deliberately NOT
+ * routed into the civilian flow.
+ *
+ * Nothing consumes what it collects. As of 8 Sep 2026:
+ *   - SOSRequestSchema has no bloodGroup / emergencyContacts / medicalNotes
+ *     field, so none of it can travel with an SOS
+ *   - nothing persists a profile; localStorage holds only the device id, the
+ *     SOS document store and the outbound queue
+ *   - App passes `onFinish={(_profile) => ...}` and drops the value
+ *
+ * Routing it in as-is would take a blood group, next-of-kin numbers and
+ * medical conditions on an emergency app and silently discard them, which is
+ * worse than not asking. It would also add a step to the SOS beat, which is
+ * measured at four gestures and is the most important part of the demo.
+ *
+ * TODO(post-sih): to make this real, in order —
+ *   1. packages/schema: add bloodGroup, emergencyContacts[], medicalNotes to
+ *      SOSRequestSchema (optional fields; this is the shared contract, so it
+ *      affects every package -- flag it rather than editing quietly)
+ *   2. persist the profile to localStorage on finish, and rehydrate at login
+ *      so it survives a reload and Profile.tsx can display it
+ *   3. populate the new fields in SendingScreen's SOS body, next to
+ *      reporterName/reporterPhone
+ *   4. surface them in the responder incident sidebar (MapView) and SOSList,
+ *      since a blood group nobody can see is the same problem one step later
+ *   5. only then route login -> profile-setup -> home, with "Skip for now"
+ *      going straight to home
+ */
+
 interface Props {
   name: string;
   phone: string;

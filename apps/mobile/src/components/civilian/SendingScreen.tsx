@@ -10,6 +10,12 @@ interface Props {
   people: number;
   helpTypes?: string[];
   userName?: string;
+  /**
+   * The number given at login. SOSRequestSchema has carried `reporterPhone`
+   * all along and nothing was populating it, so a responder receiving an SOS
+   * had no way to call the person back.
+   */
+  userPhone?: string;
   onDelivered: () => void;
 }
 
@@ -63,7 +69,7 @@ async function resolveGeo(): Promise<{ lat: number; lng: number; accuracyM?: num
   };
 }
 
-export default function SendingScreen({ severity, people, helpTypes = [], userName = 'Civilian', onDelivered }: Props) {
+export default function SendingScreen({ severity, people, helpTypes = [], userName = 'Civilian', userPhone, onDelivered }: Props) {
   const [litNodes, setLitNodes] = useState(1); // "You" starts lit
   const [phase, setPhase] = useState<'queued' | 'sending' | 'relaying' | 'delivered' | 'failed'>('queued');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -94,6 +100,10 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
         id: sosId,
         deviceId,
         reporterName: userName,
+        // Omitted rather than sent empty: the field is optional, and a blank
+        // string on a responder's screen reads as "no number was given" less
+        // clearly than the field simply being absent.
+        ...(userPhone?.trim() ? { reporterPhone: userPhone.trim() } : {}),
         incidentType: inferIncidentType(helpTypes),
         priority,
         victimCount: people,

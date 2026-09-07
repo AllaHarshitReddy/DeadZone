@@ -303,6 +303,7 @@ export default function App() {
               people={sosData.people ?? 1}
               helpTypes={sosData.helpTypes ?? []}
               userName={user.name}
+              userPhone={user.phone}
               onDelivered={() => setCivilianView('live-track')}
             />
           )}
