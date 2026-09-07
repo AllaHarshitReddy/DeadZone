@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
-import { TRIAGE_COLOR, NEED_ICONS, type SOSIncident, type NetworkStatus } from '../../data/mockData';
+import { TRIAGE_COLOR, NEED_ICONS, MOCK_TEAMS, type SOSIncident, type NetworkStatus } from '../../data/mockData';
 
 interface Props {
   incidents: SOSIncident[];
@@ -480,40 +480,7 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
               </div>
             )}
 
-            {/*
-              Disabled on purpose, and labelled with the reason.
-              packages/triage can allocate for real, but allocate() needs a
-              responder roster with position and status and there is no such
-              roster: the command node knows connected device ids, not team
-              identities or where they are. Wiring this to MOCK_TEAMS would put
-              invented crews on the map, which is the thing we just removed
-              from logistics. Shown rather than hidden so the gap is visible
-              and explains itself.
-              TODO(post-sih): needs a real responder roster endpoint before
-              this can call allocate().
-            */}
-            <button
-              disabled
-              aria-disabled="true"
-              title="Dispatch needs a responder roster with live positions. This build has none."
-              className="w-full py-4 rounded-xl font-black tracking-widest"
-              style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontSize: '18px',
-                background: '#1A1A22',
-                color: '#5A5A6A',
-                border: '1px solid #2A2A38',
-                cursor: 'not-allowed',
-              }}
-            >
-              DISPATCH TEAM
-            </button>
-            <div
-              className="text-center mt-2"
-              style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: '#4A4A5A' }}
-            >
-              no responder roster
-            </div>
+            <TeamAssignment incidentId={selected.id} />
           </div>
         </>
       )}
@@ -526,6 +493,234 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
  * schematic city that shipped before the real basemap landed. Pins use the
  * legacy x/y percentages.
  */
+const TEAM_STATUS: Record<string, { label: string; color: string }> = {
+  available: { label: 'Available', color: '#30A46C' },
+  in_transit: { label: 'En route', color: '#F5A524' },
+  deployed: { label: 'On site', color: '#22D3EE' },
+  off_duty: { label: 'Off duty', color: '#5A5A6A' },
+};
+
+/**
+ * Team assignment for the selected incident, backed by MOCK_TEAMS.
+ *
+ * The distances and ETAs are representative figures carried on the mock
+ * records, not measurements: nothing reports a team's position and there is no
+ * routing in this build. Selection and dispatch are local to this panel --
+ * no allocation runs, nothing is sent, and switching incident forgets it.
+ * TODO(post-sih): back this with a real responder roster and packages/triage's
+ * allocate().
+ */
+function TeamAssignment({ incidentId }: { incidentId: string }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [picked, setPicked] = useState<string[]>([]);
+  const [dispatched, setDispatched] = useState(false);
+
+  // A different incident is a different assignment.
+  useEffect(() => {
+    setPicked([]);
+    setDispatched(false);
+    setOpen(false);
+    setQuery('');
+  }, [incidentId]);
+
+  const q = query.trim().toLowerCase();
+  const matches = MOCK_TEAMS.filter(
+    (t) =>
+      !q ||
+      t.name.toLowerCase().includes(q) ||
+      t.unit.toLowerCase().includes(q) ||
+      t.hq.toLowerCase().includes(q),
+  );
+  const available = matches.filter((t) => t.status === 'available');
+  const unavailable = matches.filter((t) => t.status !== 'available');
+
+  const toggle = (id: string) =>
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  if (dispatched) {
+    return (
+      <div className="w-full py-3 rounded-xl text-center" style={{ background: '#0D2818', border: '1px solid #30A46C44' }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#30A46C' }}>
+          Dispatched — {picked.length} team{picked.length !== 1 ? 's' : ''} en route
+        </div>
+        <button
+          onClick={() => { setDispatched(false); setPicked([]); }}
+          className="mt-1"
+          style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: '#5A5A6A', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          Undo
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-2" style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 500, color: '#8A8A9A' }}>
+        Assign rescue team
+      </div>
+
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-lg mb-2"
+        style={{ background: '#18181F', border: '1px solid #2A2A38', cursor: 'pointer' }}
+      >
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: picked.length ? '#F0F0F6' : '#5A5A6A' }}>
+          {picked.length === 0 ? 'Select teams...' : `${picked.length} team${picked.length !== 1 ? 's' : ''} selected`}
+        </span>
+        <svg viewBox="0 0 10 6" fill="none" width="10" height="6" style={{ flexShrink: 0 }}>
+          <path d={open ? 'M1 5l4-4 4 4' : 'M1 1l4 4 4-4'} stroke="#8A8A9A" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="mb-2 rounded-lg overflow-hidden" style={{ background: '#131318', border: '1px solid #2A2A38' }}>
+          <div style={{ padding: 8, borderBottom: '1px solid #2A2A38' }}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search teams..."
+              className="w-full px-2 py-1 rounded"
+              style={{
+                background: '#0D0D12',
+                border: '1px solid #2A2A38',
+                color: '#F0F0F6',
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '12px',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+            {matches.length === 0 && (
+              <div style={{ padding: 12, fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#5A5A6A', textAlign: 'center' }}>
+                No teams match that search
+              </div>
+            )}
+            {available.length > 0 && <GroupLabel>Available</GroupLabel>}
+            {available.map((t) => (
+              <TeamOption key={t.id} team={t} checked={picked.includes(t.id)} onToggle={() => toggle(t.id)} />
+            ))}
+            {unavailable.length > 0 && <GroupLabel>Unavailable</GroupLabel>}
+            {unavailable.map((t) => (
+              <TeamOption key={t.id} team={t} checked={picked.includes(t.id)} onToggle={() => toggle(t.id)} dimmed />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => picked.length > 0 && setDispatched(true)}
+        disabled={picked.length === 0}
+        className="w-full py-4 rounded-xl font-black tracking-widest"
+        style={{
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: '18px',
+          background: picked.length ? 'linear-gradient(135deg, #EA580C, #C2410C)' : '#1A1A22',
+          color: picked.length ? '#FFFFFF' : '#5A5A6A',
+          border: picked.length ? 'none' : '1px solid #2A2A38',
+          boxShadow: picked.length ? '0 4px 16px rgba(234,88,12,0.3)' : 'none',
+          cursor: picked.length ? 'pointer' : 'not-allowed',
+        }}
+      >
+        DISPATCH{picked.length ? ` ${picked.length} TEAM${picked.length !== 1 ? 'S' : ''}` : ' TEAM'}
+      </button>
+    </div>
+  );
+}
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        padding: '6px 10px',
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: '9px',
+        letterSpacing: '0.1em',
+        color: '#5A5A6A',
+        background: '#0D0D12',
+        textTransform: 'uppercase',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TeamOption({
+  team,
+  checked,
+  onToggle,
+  dimmed = false,
+}: {
+  team: (typeof MOCK_TEAMS)[number];
+  checked: boolean;
+  onToggle: () => void;
+  dimmed?: boolean;
+}) {
+  const st = TEAM_STATUS[team.status] ?? { label: team.status, color: '#5A5A6A' };
+  return (
+    <button
+      onClick={onToggle}
+      className="w-full flex items-start gap-2 px-3 py-2 text-left"
+      style={{
+        background: checked ? '#18181F' : 'transparent',
+        border: 'none',
+        borderBottom: '1px solid #1F1F28',
+        cursor: 'pointer',
+        opacity: dimmed ? 0.65 : 1,
+      }}
+    >
+      <span
+        className="flex items-center justify-center rounded flex-shrink-0"
+        style={{
+          width: 15,
+          height: 15,
+          marginTop: 2,
+          border: `1px solid ${checked ? '#EA580C' : '#3A3A48'}`,
+          background: checked ? '#EA580C' : 'transparent',
+        }}
+      >
+        {checked && (
+          <svg viewBox="0 0 10 8" fill="none" stroke="#fff" strokeWidth="1.8" width="9" height="7">
+            <path d="M1 4l3 3 5-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </span>
+
+      <span className="flex-1 min-w-0">
+        <span className="flex items-center gap-2">
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500, color: '#F0F0F6' }}>
+            Team {team.name}
+          </span>
+          <span
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '10px',
+              color: st.color,
+              background: `${st.color}18`,
+              border: `1px solid ${st.color}44`,
+              borderRadius: 3,
+              padding: '1px 5px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {st.label}
+          </span>
+        </span>
+        <span className="block" style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: '#8A8A9A', marginTop: 1 }}>
+          {team.unit} · {team.members} members · {team.hq}
+        </span>
+        <span className="block" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: '#5A5A6A', marginTop: 1 }}>
+          {team.distance} · {team.eta}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function SketchMap({
   incidents,
   selectedId,

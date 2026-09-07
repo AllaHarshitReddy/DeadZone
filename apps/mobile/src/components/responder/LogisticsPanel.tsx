@@ -7,11 +7,13 @@ const TEAM_STATUS_COLOR: Record<string, string> = {
   deployed: '#30A46C',
   in_transit: '#F5A524',
   available: '#22D3EE',
+  off_duty: '#4A5A78',
 };
 const TEAM_STATUS_LABEL: Record<string, string> = {
   deployed: 'On site',
   in_transit: 'En route',
   available: 'Available',
+  off_duty: 'Off duty',
 };
 
 /** A resource row. Allocation is component-local: no server, no endpoint. */
@@ -201,7 +203,7 @@ function TeamsTable() {
     <div>
       {/* Filter chips */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {['all', 'available', 'in_transit', 'deployed'].map(s => (
+        {['all', 'available', 'in_transit', 'deployed', 'off_duty'].map(s => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}

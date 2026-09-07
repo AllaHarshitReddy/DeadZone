@@ -131,11 +131,19 @@ export const MOCK_INCIDENTS: SOSIncident[] = [
   },
 ];
 
+/**
+ * Rescue teams. `unit`, `hq`, `distance` and `eta` are representative figures
+ * for the demo, not measurements: there is no responder roster and nothing
+ * reports a team's position, so no distance here was computed from anything.
+ * Status vocabulary is available | in_transit | deployed | off_duty, rendered
+ * as Available / En route / On site / Off duty.
+ */
 export const MOCK_TEAMS = [
-  { id: 't1', name: 'Alpha', members: 6, status: 'deployed', assignedTo: 'sos-001', eta: '2 min' },
-  { id: 't2', name: 'Bravo', members: 4, status: 'deployed', assignedTo: 'sos-002', eta: '8 min' },
-  { id: 't3', name: 'Charlie', members: 8, status: 'in_transit', assignedTo: null, eta: '15 min' },
-  { id: 't4', name: 'Delta', members: 5, status: 'available', assignedTo: null, eta: null },
+  { id: 't1', name: 'Alpha', unit: 'Medical', hq: 'Central Depot', members: 6, status: 'deployed', assignedTo: 'sos-001', distance: '0.8 km', eta: '3 min' },
+  { id: 't2', name: 'Bravo', unit: 'Rescue', hq: 'Central Depot', members: 4, status: 'in_transit', assignedTo: 'sos-002', distance: '2.1 km', eta: '9 min' },
+  { id: 't3', name: 'Charlie', unit: 'Medical', hq: 'North Depot', members: 8, status: 'available', assignedTo: null, distance: '1.4 km', eta: '5 min' },
+  { id: 't4', name: 'Delta', unit: 'Fire', hq: 'North Depot', members: 5, status: 'available', assignedTo: null, distance: '5.2 km', eta: '18 min' },
+  { id: 't5', name: 'Echo', unit: 'Evacuation', hq: 'Field Store', members: 10, status: 'off_duty', assignedTo: null, distance: '8.4 km', eta: '25 min' },
 ];
 
 export const MOCK_RESOURCES = [
