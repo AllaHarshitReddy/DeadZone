@@ -198,7 +198,12 @@ function TeamsTable() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr 60px 80px 80px 120px 80px',
+            // Header and row templates must stay identical or the columns
+            // drift apart. 72px on Members because "MEMBERS" at 11px with
+            // 0.06em tracking overruns a 60px track and collides with
+            // "STATUS"; the gap keeps every heading off its neighbour.
+            gridTemplateColumns: '1fr 1fr 72px 80px 80px 120px 80px',
+            gap: 12,
             padding: '8px 16px',
             borderBottom: '1px solid #243044',
             background: '#0B1220',
@@ -232,7 +237,9 @@ function TeamsTable() {
                 key={team.id}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 60px 80px 80px 120px 80px',
+                  // Must match the header template above exactly.
+                  gridTemplateColumns: '1fr 1fr 72px 80px 80px 120px 80px',
+                  gap: 12,
                   padding: '10px 16px',
                   borderBottom: i < filtered.length - 1 ? '1px solid #243044' : 'none',
                   transition: 'background 0.1s',
