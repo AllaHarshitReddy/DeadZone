@@ -344,7 +344,6 @@ export default function App() {
 
           {civilianView === 'nearby-mesh' && (
             <NearbyMesh
-              relayedCount={relayedCount}
               userName={user.name}
               onBack={() => setCivilianView('home')}
             />
