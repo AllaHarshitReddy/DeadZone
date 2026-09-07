@@ -103,6 +103,14 @@ function markerEl(incident: SOSIncident, selected: boolean): HTMLElement {
   return wrap;
 }
 
+/** Rail ordering: most urgent first, same precedence the SOS list uses. */
+const RAIL_ORDER: Record<SOSIncident['triage'], number> = {
+  RED: 0,
+  YELLOW: 1,
+  GREEN: 2,
+  BLACK: 3,
+};
+
 export default function MapView({ incidents, selectedId, onSelect, networkStatus }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -231,10 +239,88 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
 
       {mapError && <SketchMap incidents={incidents} selectedId={selectedId} onPin={handlePin} />}
 
-      {/* Legend */}
+      {/*
+        Active-incident rail. An overlay pinned to the left edge, same approach
+        as the detail sidebar: the MapLibre container stays absolute inset-0 and
+        never resizes, so the map instance is untouched.
+
+        Every value here is real -- the same incidents array that feeds the map,
+        the SOS list and the triage board. Titles are the headline built in
+        services/incidents.ts (the civilian's own words, or the incident type),
+        not the mock's place names. No distances: nothing measures one.
+      */}
       <div
-        className="absolute top-3 left-3 rounded-xl p-3 border border-[#2A2A38] z-10"
-        style={{ background: 'rgba(13,17,23,0.92)', backdropFilter: 'blur(8px)' }}
+        className="absolute top-0 left-0 bottom-0 z-20 flex flex-col"
+        style={{ width: 280, background: '#0B1220', borderRight: '1px solid #243044' }}
+      >
+        <div className="flex-shrink-0" style={{ padding: '14px 16px 10px', borderBottom: '1px solid #243044' }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', fontWeight: 600, color: '#E6EAF2' }}>
+            Active incidents
+          </div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#4A5A78', marginTop: 2 }}>
+            {incidents.length} total · {redCount} critical
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {incidents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-5" style={{ minHeight: 140, textAlign: 'center' }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#8A97AC' }}>
+                No active incidents
+              </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#4A5A78', lineHeight: 1.5 }}>
+                Waiting for an SOS from the command node.
+              </div>
+            </div>
+          ) : (
+            [...incidents]
+              .sort((a, b) => RAIL_ORDER[a.triage] - RAIL_ORDER[b.triage])
+              .map((inc) => {
+                const isSelected = selectedId === inc.id;
+                const color = TRIAGE_COLOR[inc.triage];
+                return (
+                  <button
+                    key={inc.id}
+                    onClick={() => (isSelected ? closeSheet() : handlePin(inc.id))}
+                    className="w-full text-left"
+                    style={{
+                      padding: '10px 16px',
+                      background: isSelected ? '#131C2E' : 'transparent',
+                      border: 'none',
+                      borderLeft: `3px solid ${isSelected ? color : 'transparent'}`,
+                      borderBottom: '1px solid #243044',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, background: color }} />
+                      <span
+                        className="flex-1 truncate"
+                        style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500, color: '#E6EAF2' }}
+                      >
+                        {inc.location}
+                      </span>
+                      <span
+                        className="flex-shrink-0"
+                        style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: '#4A5A78' }}
+                      >
+                        {inc.timeAgo}
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#8A97AC' }}>
+                      {inc.people} {inc.people === 1 ? 'person' : 'people'}
+                    </div>
+                  </button>
+                );
+              })
+          )}
+        </div>
+      </div>
+
+      {/* Legend — sits clear of the rail */}
+      <div
+        className="absolute top-3 rounded-xl p-3 border border-[#2A2A38] z-10"
+        style={{ left: 292, background: 'rgba(13,17,23,0.92)', backdropFilter: 'blur(8px)' }}
       >
         <div
           className="text-[#5A5A6A] mb-2 tracking-widest"
@@ -257,9 +343,13 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
           className="mt-2 pt-2 border-t border-[#2A2A38] text-[#5A5A6A]"
           style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px' }}
         >
-          {incidents.length} active · {redCount} critical
-          {located.length < incidents.length && (
-            <div className="text-[#8A5A2A]">{incidents.length - located.length} without a fix</div>
+          {/* Counts moved to the rail header; this stays because it explains a
+              discrepancy specific to the map — the rail lists every incident,
+              the map can only pin the ones that arrived with coordinates. */}
+          {located.length < incidents.length ? (
+            <span className="text-[#8A5A2A]">{incidents.length - located.length} without a fix</span>
+          ) : (
+            <span>all {incidents.length} located</span>
           )}
         </div>
       </div>
