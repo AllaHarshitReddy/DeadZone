@@ -1,3 +1,19 @@
+/**
+ * The single gate for every fabricated dataset in this file.
+ *
+ * Fabricated records are a local development aid and must never reach a demo:
+ * on screen they are indistinguishable from real ones. Opt in explicitly with
+ * `?mock=1` in the URL or VITE_USE_MOCK_DATA=true at build time. With no flag
+ * the app starts empty and stays empty until real data arrives.
+ *
+ * Lives here rather than in App.tsx because the responder panels need it too,
+ * and both already import from this module -- so sharing it adds no new import
+ * edge and there is exactly one definition of "are we showing mock data".
+ */
+export const USE_MOCK_DATA =
+  import.meta.env.VITE_USE_MOCK_DATA === 'true' ||
+  (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('mock'));
+
 export type TriageCategory = 'RED' | 'YELLOW' | 'GREEN' | 'BLACK';
 export type NeedType = 'medical' | 'rescue' | 'food_water' | 'shelter';
 export type HopStatus = 'queued' | 'relayed' | 'delivered';

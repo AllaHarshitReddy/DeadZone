@@ -23,7 +23,7 @@ import SOSList from './components/responder/SOSList';
 import TriageBoard from './components/responder/TriageBoard';
 import LogisticsPanel from './components/responder/LogisticsPanel';
 
-import { MOCK_INCIDENTS, COVERAGE_DEVICES, type SOSIncident, type NetworkStatus, type CoverageStatus } from './data/mockData';
+import { MOCK_INCIDENTS, COVERAGE_DEVICES, USE_MOCK_DATA, type SOSIncident, type NetworkStatus, type CoverageStatus } from './data/mockData';
 import { MeshClient } from './services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from './config';
 import { sosToIncident } from './services/incidents';
@@ -71,13 +71,11 @@ const NAV_ITEMS: { view: ResponderView; icon: string; label: string }[] = [
 /**
  * Fabricated incidents are a local development aid and must never reach a
  * demo: on screen they are indistinguishable from real ones, and several of
- * them carry convincing-looking START reason strings. Opt in explicitly with
- * `?mock=1` in the URL or VITE_USE_MOCK_DATA=true at build time. With no flag
- * the dashboard starts empty and stays empty until a real SOS arrives.
+ * them carry convincing-looking START reason strings. The gate itself now
+ * lives in data/mockData.ts, shared with the responder panels so there is one
+ * definition rather than a copy per consumer.
  */
-const USE_MOCK_INCIDENTS =
-  import.meta.env.VITE_USE_MOCK_DATA === 'true' ||
-  (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('mock'));
+const USE_MOCK_INCIDENTS = USE_MOCK_DATA;
 
 function EmptyIncidents() {
   return (
