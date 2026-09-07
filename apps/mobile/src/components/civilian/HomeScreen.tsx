@@ -16,26 +16,26 @@ interface Props {
   onGuideBack: () => void;
 }
 
-/* ── SOS button variants ── */
+/* ── SOS button variants — button is always red; connectivity changes caption only ── */
 const VARIANT = {
   red: {
     color: '#E5484D',
-    label: 'Send now',
-    sub: 'Tap once — fires immediately',
+    label: 'SOS',
+    instruction: 'Press once to send',
     holdMs: 0,
     tapThreshold: 1,
   },
   amber: {
-    color: '#F5A524',
+    color: '#E5484D',
     label: 'SOS',
-    sub: 'Hold 2s or tap twice',
+    instruction: 'Hold 2 seconds\nor tap twice',
     holdMs: 2000,
     tapThreshold: 2,
   },
   green: {
-    color: '#30A46C',
+    color: '#E5484D',
     label: 'SOS',
-    sub: 'Hold 2s or tap three times',
+    instruction: 'Hold 2 seconds\nor tap three times',
     holdMs: 2000,
     tapThreshold: 3,
   },
@@ -109,13 +109,13 @@ function SOSButton({ coverage, onFire }: { coverage: CoverageStatus; onFire: () 
           viewBox="0 0 240 240"
         >
           {/* Track */}
-          <circle cx="120" cy="120" r={RADIUS} fill="none" stroke="#243044" strokeWidth="2" />
+          <circle cx="120" cy="120" r={RADIUS} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" />
           {/* Progress */}
           {(holding || holdProgress > 0) && (
             <circle
               cx="120" cy="120" r={RADIUS}
               fill="none"
-              stroke={v.color}
+              stroke="rgba(255,255,255,0.7)"
               strokeWidth="2"
               strokeLinecap="round"
               strokeDasharray={CIRC}
@@ -126,7 +126,7 @@ function SOSButton({ coverage, onFire }: { coverage: CoverageStatus; onFire: () 
           )}
         </svg>
 
-        {/* Flat solid disc */}
+        {/* Flat solid red disc */}
         <button
           onPointerDown={handleDown}
           onPointerUp={handleUp}
@@ -135,7 +135,7 @@ function SOSButton({ coverage, onFire }: { coverage: CoverageStatus; onFire: () 
             width: 212,
             height: 212,
             borderRadius: '50%',
-            background: v.color,
+            background: '#E5484D',
             border: 'none',
             display: 'flex',
             flexDirection: 'column',
@@ -151,9 +151,9 @@ function SOSButton({ coverage, onFire }: { coverage: CoverageStatus; onFire: () 
           <span
             style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: coverage === 'red' ? '22px' : '36px',
+              fontSize: '44px',
               fontWeight: 600,
-              color: coverage === 'amber' ? '#0B1220' : '#ffffff',
+              color: '#ffffff',
               lineHeight: 1,
             }}
           >
@@ -165,7 +165,7 @@ function SOSButton({ coverage, onFire }: { coverage: CoverageStatus; onFire: () 
                 fontFamily: "'Inter', sans-serif",
                 fontSize: '24px',
                 fontWeight: 500,
-                color: coverage === 'amber' ? '#0B1220' : '#ffffff',
+                color: '#ffffff',
                 marginTop: 6,
               }}
             >
@@ -175,10 +175,32 @@ function SOSButton({ coverage, onFire }: { coverage: CoverageStatus; onFire: () 
         </button>
       </div>
 
-      {/* Caption */}
-      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: '#8A97AC', textAlign: 'center' }}>
-        {v.sub}
-      </p>
+      {/* Large dominant instruction line */}
+      <div style={{ marginTop: 32, textAlign: 'center' }}>
+        <p
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '24px',
+            fontWeight: 600,
+            color: '#E6EAF2',
+            whiteSpace: 'pre-line',
+            lineHeight: 1.3,
+            margin: 0,
+          }}
+        >
+          {v.instruction}
+        </p>
+        <p
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '15px',
+            color: '#8A97AC',
+            marginTop: 8,
+          }}
+        >
+          Your location and blood group are sent automatically.
+        </p>
+      </div>
 
       {/* Tap pips */}
       {v.tapThreshold > 1 && (

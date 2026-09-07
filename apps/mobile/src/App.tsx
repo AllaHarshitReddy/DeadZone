@@ -14,6 +14,7 @@ import CoverageLostScreen from './components/civilian/CoverageLostScreen';
 import ReturnGuidance from './components/civilian/ReturnGuidance';
 import LiveTracking from './components/civilian/LiveTracking';
 import NearbyMesh from './components/civilian/NearbyMesh';
+import ProfileSetup, { type ProfileData } from './components/civilian/ProfileSetup';
 
 // ── Responder UI (unchanged) ─────────────────────────────────────────────────
 import StatusBanner from './components/StatusBanner';
@@ -33,6 +34,7 @@ type Role = 'civilian' | 'responder' | null;
 
 type CivilianView =
   | 'home'
+  | 'profile-setup'
   | 'language'
   | 'profile'
   | 'severity'
@@ -233,6 +235,15 @@ export default function App() {
           )}
 
           {/* ── Screens ── */}
+          {civilianView === 'profile-setup' && (
+            <ProfileSetup
+              name={user.name}
+              phone={user.phone}
+              onBack={() => { setUser(null); setRole(null); }}
+              onFinish={(_profile: ProfileData) => setCivilianView('home')}
+            />
+          )}
+
           {civilianView === 'home' && (
             <HomeScreen
               coverageStatus={coverageStatus}
