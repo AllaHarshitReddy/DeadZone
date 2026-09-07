@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MOCK_TEAMS, MOCK_RESOURCES } from '../../data/mockData';
 
 type Tab = 'teams' | 'resources';
@@ -14,7 +14,13 @@ const TEAM_STATUS_LABEL: Record<string, string> = {
   available: 'Available',
 };
 
-const RESOURCES_EXTENDED = [
+/** A resource row. Allocation is component-local: no server, no endpoint. */
+type ResourceRow = {
+  id: string; item: string; hq: string; total: number;
+  allocated: number; reserved: string; lastSynced: string;
+};
+
+const RESOURCES_EXTENDED: ResourceRow[] = [
   { id: 'r1', item: 'Ambulances', hq: 'Karnataka SDRF HQ', total: 8, allocated: 3, reserved: 'Koramangala flood', lastSynced: '2 min ago' },
   { id: 'r2', item: 'Medical kits', hq: 'BBMP Emergency', total: 40, allocated: 12, reserved: '—', lastSynced: '4 min ago' },
   { id: 'r3', item: 'Stretchers', hq: 'Karnataka SDRF HQ', total: 16, allocated: 6, reserved: 'Majestic incident', lastSynced: '2 min ago' },
@@ -59,22 +65,45 @@ function SummaryTile({ label, value, delta, color = '#E6EAF2' }: { label: string
   );
 }
 
-function AllocationStepper({ resource }: { resource: typeof RESOURCES_EXTENDED[0] }) {
+function AllocationStepper({
+  resource,
+  onAllocate,
+}: {
+  resource: ResourceRow;
+  onAllocate: (qty: number) => void;
+}) {
+  // Derived from the row the table is holding in state, so it falls as stock
+  // is committed. Previously this read the RESOURCES_EXTENDED constant, which
+  // never changes -- the counters could not move no matter what was allocated.
   const available = resource.total - resource.allocated;
   const [qty, setQty] = useState(0);
-  const [allocated, setAllocated] = useState(false);
+  const [justAllocated, setJustAllocated] = useState(0);
+  const ackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => () => { if (ackTimer.current) clearTimeout(ackTimer.current); }, []);
+
+  // qty can exceed available if stock fell after it was dialled in; clamp so
+  // the guard below can never be stepped past.
   const atCap = qty >= available;
   const overCap = qty > available;
 
   const dec = () => setQty(q => Math.max(0, q - 1));
   const inc = () => setQty(q => Math.min(available, q + 1));
-  const handleAllocate = () => { if (qty > 0 && !overCap) setAllocated(true); };
 
-  if (allocated) {
+  const handleAllocate = () => {
+    if (qty <= 0 || qty > available) return;
+    onAllocate(qty);
+    setJustAllocated(qty);
+    setQty(0);
+    // Acknowledge, then return to the stepper so the row stays usable.
+    if (ackTimer.current) clearTimeout(ackTimer.current);
+    ackTimer.current = setTimeout(() => setJustAllocated(0), 2500);
+  };
+
+  if (justAllocated > 0) {
     return (
       <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#30A46C' }}>
-        ✓ {qty} allocated
+        ✓ {justAllocated} allocated
       </span>
     );
   }
@@ -289,7 +318,13 @@ function TeamsTable() {
   );
 }
 
-function ResourcesTable() {
+function ResourcesTable({
+  rows,
+  onAllocate,
+}: {
+  rows: ResourceRow[];
+  onAllocate: (id: string, qty: number) => void;
+}) {
   return (
     <div>
       <div style={{ background: '#131C2E', border: '1px solid #243044', borderRadius: 6, overflow: 'auto' }}>
@@ -319,14 +354,14 @@ function ResourcesTable() {
             </tr>
           </thead>
           <tbody>
-            {RESOURCES_EXTENDED.map((r, i) => {
+            {rows.map((r, i) => {
               const available = r.total - r.allocated;
               const pct = (available / r.total) * 100;
               const avColor = pct < 20 ? '#E5484D' : pct < 50 ? '#F5A524' : '#30A46C';
               return (
                 <tr
                   key={r.id}
-                  style={{ borderBottom: i < RESOURCES_EXTENDED.length - 1 ? '1px solid #243044' : 'none' }}
+                  style={{ borderBottom: i < rows.length - 1 ? '1px solid #243044' : 'none' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#0B1220')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}
                 >
@@ -352,7 +387,7 @@ function ResourcesTable() {
                     {r.lastSynced}
                   </td>
                   <td style={{ padding: '10px 14px' }}>
-                    <AllocationStepper resource={r} />
+                    <AllocationStepper resource={r} onAllocate={qty => onAllocate(r.id, qty)} />
                   </td>
                 </tr>
               );
@@ -367,8 +402,23 @@ function ResourcesTable() {
 export default function LogisticsPanel() {
   const [tab, setTab] = useState<Tab>('teams');
 
-  const ambulancesAvail = RESOURCES_EXTENDED.find(r => r.item === 'Ambulances');
-  const medKitsAvail = RESOURCES_EXTENDED.find(r => r.item === 'Medical kits');
+  // Held here rather than in ResourcesTable so the summary tiles above the
+  // tabs move with the table -- allocating ambulances has to change the
+  // "Ambulances available" tile too, or the page contradicts itself.
+  const [rows, setRows] = useState<ResourceRow[]>(() => RESOURCES_EXTENDED.map(r => ({ ...r })));
+
+  const allocate = (id: string, qty: number) =>
+    setRows(rs =>
+      rs.map(r => {
+        if (r.id !== id) return r;
+        // Never commit more than is actually on the shelf.
+        const available = r.total - r.allocated;
+        return { ...r, allocated: r.allocated + Math.min(qty, available) };
+      }),
+    );
+
+  const ambulancesAvail = rows.find(r => r.item === 'Ambulances');
+  const medKitsAvail = rows.find(r => r.item === 'Medical kits');
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', background: '#0B1220', padding: '24px 24px 40px' }}>
@@ -424,7 +474,7 @@ export default function LogisticsPanel() {
         ))}
       </div>
 
-      {tab === 'teams' ? <TeamsTable /> : <ResourcesTable />}
+      {tab === 'teams' ? <TeamsTable /> : <ResourcesTable rows={rows} onAllocate={allocate} />}
     </div>
   );
 }
