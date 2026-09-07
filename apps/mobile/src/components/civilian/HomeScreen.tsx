@@ -4,7 +4,6 @@ import { COVERAGE_DEVICES } from '../../data/mockData';
 
 interface Props {
   coverageStatus: CoverageStatus;
-  relayedCount: number;
   sosPending: boolean;
   showToast: boolean;
   userName: string;
@@ -289,7 +288,6 @@ function WeakeningToast({ onDismiss, onGuideBack }: { onDismiss: () => void; onG
 
 export default function HomeScreen({
   coverageStatus,
-  relayedCount,
   sosPending,
   showToast,
   userName,
@@ -321,30 +319,6 @@ export default function HomeScreen({
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {relayedCount > 0 && (
-            <button
-              onClick={onNearbyMesh}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '5px 10px',
-                borderRadius: 6,
-                background: '#22D3EE10',
-                border: '1px solid #22D3EE30',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '12px',
-                color: '#22D3EE',
-                cursor: 'pointer',
-              }}
-            >
-              <svg viewBox="0 0 16 16" fill="none" stroke="#22D3EE" strokeWidth="1.5" width="14" height="14">
-                <circle cx="8" cy="8" r="3" />
-                <path d="M2 8h2M12 8h2M8 2v2M8 12v2" />
-              </svg>
-              Relaying {relayedCount}
-            </button>
-          )}
           <button
             onClick={onProfile}
             style={{

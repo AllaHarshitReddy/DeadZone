@@ -125,8 +125,6 @@ export default function App() {
   const [sosPending, setSosPending] = useState(false);
   const [sosData, setSOSData] = useState<Partial<SOSData>>({});
 
-  const relayedCount = 4;
-
   const toggleNetwork = useCallback(() => {
     setNetworkStatus(s => s === 'offline' ? 'online' : 'offline');
   }, []);
@@ -247,7 +245,6 @@ export default function App() {
           {civilianView === 'home' && (
             <HomeScreen
               coverageStatus={coverageStatus}
-              relayedCount={relayedCount}
               sosPending={sosPending}
               showToast={showToast}
               userName={user.name}
