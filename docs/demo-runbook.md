@@ -134,15 +134,39 @@ is meaningless if the judge does not believe the network is gone.
 
 ### Beat 2 · Send the SOS (20s)
 
-On the phone: **Home → tap SOS → Severity → Help type → Number of people → sending**
+On the phone: **Home → SOS → Severity → Help type → Number of people → sending**
+
+**Four gestures, about 10-11 seconds.** Budget for that; it is the longest
+interactive beat and the one a judge watches most closely.
+
+| Coverage | Fire the SOS | Then | Total |
+|---|---|---|---|
+| GREEN | hold 2s **or** tap 3x | 1 tap severity, 1 tap Continue, 1 tap Continue | ~10-11s |
+| AMBER | hold 2s **or** tap 2x | same three taps | ~10-11s |
+| RED | single tap | **nothing — see below** | ~1s |
+
+Help type and number of people are both skippable in one tap: selecting no help
+type sends all types, and the people count defaults to 1. Severity advances on
+the tap itself, with no separate Continue. The sending screen then runs itself —
+about 3.4s to "delivered", auto-advancing to live tracking at 5s.
+
+**RED coverage short-circuits the wizard.** Pressing SOS at RED sets the pending
+state and renders a queued-SOS card on the home screen; it does *not* enter
+severity/help-type/people, so no SOS detail is collected and the sending screen
+never appears. Correct behaviour for a phone with no link, but it means **you
+cannot demo this beat at RED** — run it at GREEN or AMBER and use Beat 6 to show
+what happens when the link drops. Check which state the phone is in before you
+start: the mesh strip at the top of the screen says.
 
 Say while it sends:
 
 > "This wrote to the phone's own storage before it touched the network. If
 > nothing is in range, it waits. It is never lost."
 
-The screen walks the hop chain: You → Relay 1 → Relay 2 → Responder, then lands
-on live tracking.
+The screen walks the chain **You → Command node → Stored**, then lands on live
+tracking. (It formerly read "You → Relay 1 → Relay 2 → Responder". There is no
+device-to-device relay in this build — each phone holds one direct WebSocket to
+the command node — so do not describe hops that do not exist.)
 
 ### Beat 3 · It arrived (10s)
 
