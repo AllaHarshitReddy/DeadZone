@@ -321,7 +321,21 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
                   {selected.location}
                 </div>
               </div>
-              <button onClick={closeSheet} className="text-[#5A5A6A] text-xl w-8 h-8 flex items-center justify-center">×</button>
+              {/*
+                44x44 and brighter: with the scrim gone this is the only way
+                to close the panel, and 32px sat under the minimum comfortable
+                touch target if the responder view is opened on a phone rather
+                than the command laptop. -mr-2 pulls it back to the panel edge
+                so the larger hit area does not push the header inwards.
+              */}
+              <button
+                onClick={closeSheet}
+                aria-label="Close incident detail"
+                className="text-[#8A8A9A] flex items-center justify-center flex-shrink-0 rounded-lg -mr-2"
+                style={{ width: 44, height: 44, fontSize: '26px', lineHeight: 1 }}
+              >
+                ×
+              </button>
             </div>
 
             {/* Triage reason */}
@@ -376,17 +390,40 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
               </div>
             )}
 
+            {/*
+              Disabled on purpose, and labelled with the reason.
+              packages/triage can allocate for real, but allocate() needs a
+              responder roster with position and status and there is no such
+              roster: the command node knows connected device ids, not team
+              identities or where they are. Wiring this to MOCK_TEAMS would put
+              invented crews on the map, which is the thing we just removed
+              from logistics. Shown rather than hidden so the gap is visible
+              and explains itself.
+              TODO(post-sih): needs a real responder roster endpoint before
+              this can call allocate().
+            */}
             <button
-              className="w-full py-4 rounded-xl font-black tracking-widest text-white"
+              disabled
+              aria-disabled="true"
+              title="Dispatch needs a responder roster with live positions. This build has none."
+              className="w-full py-4 rounded-xl font-black tracking-widest"
               style={{
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontSize: '18px',
-                background: 'linear-gradient(135deg, #EA580C, #C2410C)',
-                boxShadow: '0 4px 16px rgba(234,88,12,0.3)',
+                background: '#1A1A22',
+                color: '#5A5A6A',
+                border: '1px solid #2A2A38',
+                cursor: 'not-allowed',
               }}
             >
-              DISPATCH TEAM →
+              DISPATCH TEAM
             </button>
+            <div
+              className="text-center mt-2"
+              style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: '#4A4A5A' }}
+            >
+              no responder roster
+            </div>
           </div>
         </>
       )}
