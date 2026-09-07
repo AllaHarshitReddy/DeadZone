@@ -37,6 +37,8 @@ export interface SOSIncident {
   distance: string;
   note?: string;
   location: string;
+  /** Raw fix to 4dp, shown as a monospace subtitle. '' when the SOS had no geo. */
+  coords?: string;
   hopStatus: HopStatus;
 }
 

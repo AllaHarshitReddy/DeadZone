@@ -112,11 +112,17 @@ export default function TriageBoard({ incidents, onUpdate }: Props) {
                     }}
                   >
                     <div className="flex items-center justify-between mb-2">
+                      {/*
+                        No longer split on the first comma: that was cutting
+                        "Medical emergency (12.972, 77.595)" into "Medical
+                        emergency (12.972". The headline is now shortened at
+                        source, so it is shown whole and clipped by CSS.
+                      */}
                       <span
-                        className="text-[#F0F0F6] font-semibold leading-tight"
+                        className="text-[#F0F0F6] font-semibold leading-tight truncate"
                         style={{ fontSize: '12px' }}
                       >
-                        {incident.location.split(',')[0]}
+                        {incident.location}
                       </span>
                       <span
                         className="font-black"
@@ -126,6 +132,14 @@ export default function TriageBoard({ incidents, onUpdate }: Props) {
                         <span className="text-[#5A5A6A] text-xs font-normal"> ppl</span>
                       </span>
                     </div>
+                    {incident.coords && (
+                      <div
+                        className="text-[#4A4A5A] mb-1 leading-tight"
+                        style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace" }}
+                      >
+                        {incident.coords}
+                      </div>
+                    )}
                     <div
                       className="text-[#5A5A6A] mb-2 leading-tight"
                       style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace" }}

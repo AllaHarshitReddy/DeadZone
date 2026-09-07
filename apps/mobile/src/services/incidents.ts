@@ -39,17 +39,41 @@ const TITLE: Record<string, string> = {
 };
 
 /**
- * A place label for the incident. Seed records carry a real sentence with a
- * landmark ("...near Koramangala 5th Block..."); phone-sent ones don't, so fall
- * back to the incident type plus a coordinate rather than showing "needs
- * medical" where a location should be.
+ * The headline for an incident.
+ *
+ * This used to scrape a landmark out of the description with a `near (...)`
+ * regex and, failing that, fall back to the incident type plus a coordinate --
+ * so every phone-sent SOS, which carries no landmark text, displayed as
+ * "Medical emergency (12.972, 77.595)". The triage board then cut that at the
+ * first comma and showed "Medical emergency (12.972".
+ *
+ * We have no way to turn a coordinate into a place name: there is no
+ * reverse-geocoder here and inventing one is not on the table. So the headline
+ * is now the civilian's own words where they wrote any -- real, user-supplied
+ * text -- and the incident type otherwise. The coordinate moves to its own
+ * field and is displayed as what it is, rather than dressed up as a location.
  */
+const MAX_TITLE = 60;
+
 function locationLabel(sos: SOSRequest): string {
-  const near = sos.description.match(/\bnear ([^,.;]+)/i);
-  if (near) return near[1].trim();
-  const coord =
-    typeof sos.geo?.lat === 'number' ? ` (${sos.geo.lat.toFixed(3)}, ${sos.geo.lng.toFixed(3)})` : '';
-  return `${TITLE[sos.incidentType] ?? 'SOS'}${coord}`;
+  const described = sos.description?.trim();
+  if (described) {
+    // First sentence, so a long message does not swamp the row.
+    const firstSentence = described.split(/(?<=[.!?])\s/)[0].trim();
+    const text = firstSentence || described;
+    return text.length > MAX_TITLE ? `${text.slice(0, MAX_TITLE - 1).trimEnd()}…` : text;
+  }
+  return TITLE[sos.incidentType] ?? 'SOS';
+}
+
+/**
+ * The raw fix, to 4dp, shown as a monospace subtitle. Empty when the SOS
+ * carried no geo -- better nothing than a placeholder that reads like a
+ * position.
+ */
+function coordsLabel(sos: SOSRequest): string {
+  if (typeof sos.geo?.lat !== 'number' || typeof sos.geo?.lng !== 'number') return '';
+  return `${sos.geo.lat.toFixed(4)}, ${sos.geo.lng.toFixed(4)}`;
 }
 
 /** "< 1 min", "12 min ago", "3 h ago", "2 d ago" from an ISO timestamp. */
@@ -102,6 +126,7 @@ export function sosToIncident(sos: SOSRequest): SOSIncident {
     timeAgo: relativeTime(sos.createdAt) || '< 1 min',
     distance: '',
     location: locationLabel(sos),
+    coords: coordsLabel(sos),
     note: sos.description || undefined,
     hopStatus: 'delivered',
   };

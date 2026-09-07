@@ -96,6 +96,15 @@ export default function SOSList({ incidents, onSelect }: Props) {
                       {incident.location}
                     </span>
                   </div>
+                  {/* The fix itself, not dressed up as a place name. */}
+                  {incident.coords && (
+                    <div
+                      className="text-[#5A5A6A] mb-0.5"
+                      style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px' }}
+                    >
+                      {incident.coords}
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 text-xs">
                     <span className="text-[#8A8A9A]">👥 {incident.people}</span>
                     <span className="text-[#8A8A9A]">{incident.timeAgo}</span>
