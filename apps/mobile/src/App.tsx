@@ -23,7 +23,7 @@ import SOSList from './components/responder/SOSList';
 import TriageBoard from './components/responder/TriageBoard';
 import LogisticsPanel from './components/responder/LogisticsPanel';
 
-import { MOCK_INCIDENTS, COVERAGE_DEVICES, USE_MOCK_DATA, type SOSIncident, type NetworkStatus, type CoverageStatus } from './data/mockData';
+import { MOCK_INCIDENTS, USE_MOCK_DATA, type SOSIncident, type NetworkStatus, type CoverageStatus } from './data/mockData';
 import { MeshClient } from './services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from './config';
 import { sosToIncident } from './services/incidents';
@@ -146,7 +146,6 @@ export default function App() {
     setSosPending(false); setSOSData({});
   }, []);
 
-  const devices = COVERAGE_DEVICES[coverageStatus];
 
   // Responder view: take a snapshot of what the command node already holds,
   // then keep up via envelopes the server fans out over the mesh socket.
@@ -201,7 +200,7 @@ export default function App() {
         <div style={PHONE_SHELL}>
           {/* Safe area — minimum 59px to clear Dynamic Island */}
           <div style={{ height: 'max(env(safe-area-inset-top, 0px), 59px)', background: '#0B1220', flexShrink: 0 }} />
-          <MeshStrip status={coverageStatus} deviceCount={devices} onPress={cycleCoverage} />
+          <MeshStrip status={coverageStatus} onPress={cycleCoverage} />
           <LoginScreen
             onEnter={data => { setUser(data); setRole(data.role); }}
             onLanguage={() => {}}
@@ -225,7 +224,6 @@ export default function App() {
           {showStrip && (
             <MeshStrip
               status={coverageStatus}
-              deviceCount={devices}
               onPress={() => setCivilianView('nearby-mesh')}
             />
           )}

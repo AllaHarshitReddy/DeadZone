@@ -8,6 +8,14 @@ import type { CoverageStatus } from '../../data/mockData';
 
 interface Props {
   status?: CoverageStatus;
+  /**
+   * Starting count only, before the first heartbeat lands. Leave it unset:
+   * the strip counts peers from the real PeerTable below, and seeding it with
+   * a fabricated figure means the strip asserts a number it has not observed
+   * for the first few seconds of every screen. App used to pass
+   * COVERAGE_DEVICES[status] here, which read "Mesh strong · 14 devices" on a
+   * link with one peer.
+   */
   deviceCount?: number;
   onPress?: () => void;
 }
