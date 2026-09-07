@@ -103,6 +103,25 @@ on venue Wi-Fi.
 
 The phone opens **`http://<that-IP>:8443`**. Write the address on your hand.
 
+**That line is printed once, at boot, and goes stale.** The address changed
+twice on 7 Sep on shared Wi-Fi (`172.20.32.44` → `10.19.132.48` → back to
+`172.20.32.44`) without the API restarting, so the log kept advertising an
+address that no longer answered. Confirm the live address instead:
+
+```bash
+# PowerShell — the Wi-Fi adapter's current address
+Get-NetIPAddress -AddressFamily IPv4 | Where-Object InterfaceAlias -eq 'Wi-Fi'
+```
+
+The stale log line is cosmetic: `config.ts` derives the mesh URL from
+`window.location`, so a phone that loads the *right* `:8443` address gets the
+right WebSocket through the Vite proxy. **Only the printed line lies — the mesh
+follows whatever address the phone actually used.** Do not chase it.
+
+**Use your own hotspot, not shared Wi-Fi.** A shared network can move the
+laptop to a new subnet mid-session, and the phone will be on the old one —
+which presents as the app failing to load, not as a network problem.
+
 ### Phone
 
 - [ ] Joined the laptop's hotspot
@@ -353,13 +372,18 @@ Five clean consecutive runs before the 10th. Record the fifth as the backup.
 |---|---|---|---|
 | 1 | 6 Sep, evening | ✅ Clean | Nothing. First run on the merged build: real offline basemap, live phone SOS landing as a pin, all beats through. |
 | 2 | 6 Sep, evening | ✅ Clean | Nothing. Run straight after 1, no restarts between them. |
-| 3 | | | |
+| 3 | 7 Sep, night | ✅ Clean | Nothing. First run on the current UI (map sidebar, incident rail, description-based titles, team dropdown, working Allocate) and the first from a genuinely cold Ollama — no model resident, tray app confirmed not running. |
 | 4 | | | |
 | 5 | | | |
 
 Wall-clock durations were not captured for runs 1 and 2 — time them from run 3
 on, since ninety seconds is the constraint and "clean" is not the same as
 "in time".
+
+**Run 3 was not timed either.** It was clean end to end and the cold start was
+real, but no stopwatch was on it, so the cold-path duration is still unmeasured.
+Runs 4 and 5 must be timed — that is now the only outstanding rehearsal
+question, and the ~58s model load is the part of it that can sink the run.
 
 **Both runs inherited a warm, already-pinned model and a browser-cached map.**
 A run started from cold — which is what demo morning is — has not been rehearsed

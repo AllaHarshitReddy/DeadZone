@@ -26,7 +26,15 @@ import { useState } from 'react';
  *      reporterName/reporterPhone
  *   4. surface them in the responder incident sidebar (MapView) and SOSList,
  *      since a blood group nobody can see is the same problem one step later
- *   5. only then route login -> profile-setup -> home, with "Skip for now"
+ *   5. the blood-group-to-allocation pathway: carry bloodGroup through to
+ *      packages/triage so allocation can prefer a responder or facility
+ *      carrying compatible stock. Note the constraint in CLAUDE.md -- triage
+ *      and allocation are deterministic rules with explicit reason codes and
+ *      must never touch the LLM -- so this is a rule over a compatibility
+ *      table, and every allocation it influences needs its own reason code
+ *      saying blood group was a factor. Anything less makes a life-critical
+ *      decision unexplainable, which is the one thing the pitch rests on.
+ *   6. only then route login -> profile-setup -> home, with "Skip for now"
  *      going straight to home
  */
 
