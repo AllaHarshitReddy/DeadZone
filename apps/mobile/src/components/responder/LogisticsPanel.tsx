@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MOCK_TEAMS, MOCK_RESOURCES, USE_MOCK_DATA } from '../../data/mockData';
+import { MOCK_TEAMS, MOCK_RESOURCES } from '../../data/mockData';
 
 type Tab = 'teams' | 'resources';
 
@@ -364,64 +364,11 @@ function ResourcesTable() {
   );
 }
 
-/**
- * Shown whenever mock data is off, which is every demo run.
- *
- * Everything this panel can render is invented: RESOURCES_EXTENDED attributes
- * stock to named real agencies (Karnataka SDRF HQ, BBMP Emergency, NDRF
- * Bengaluru) with "last synced" times implying a live feed that does not
- * exist, the Teams table hardcodes the same HQ and "just now" for every row,
- * and the summary tiles carry invented deltas. There is no logistics
- * integration behind any of it. Showing it unconditionally left no honest
- * answer to "are you integrated with SDRF?", so it is now behind the same
- * gate as MOCK_INCIDENTS.
- */
-function EmptyLogistics() {
-  return (
-    <div
-      style={{
-        height: '100%',
-        background: '#0B1220',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        padding: '0 40px',
-        textAlign: 'center',
-      }}
-    >
-      <div
-        style={{
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontSize: '22px',
-          fontWeight: 800,
-          letterSpacing: '0.08em',
-          color: '#E6EAF2',
-        }}
-      >
-        NO LOGISTICS FEED
-      </div>
-      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#8A97AC', lineHeight: 1.6, maxWidth: 460 }}>
-        This build has no integration with any agency's inventory system. Team
-        and resource figures would have to come from one, so nothing is shown
-        rather than a number we cannot stand behind.
-      </div>
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#4A5A78', marginTop: 4 }}>
-        sample data available with ?mock=1
-      </div>
-    </div>
-  );
-}
-
 export default function LogisticsPanel() {
   const [tab, setTab] = useState<Tab>('teams');
 
   const ambulancesAvail = RESOURCES_EXTENDED.find(r => r.item === 'Ambulances');
   const medKitsAvail = RESOURCES_EXTENDED.find(r => r.item === 'Medical kits');
-
-  // Everything below this line is fabricated -- see EmptyLogistics.
-  if (!USE_MOCK_DATA) return <EmptyLogistics />;
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', background: '#0B1220', padding: '24px 24px 40px' }}>
