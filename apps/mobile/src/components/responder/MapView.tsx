@@ -274,13 +274,25 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
         </div>
       )}
 
-      {/* Incident bottom sheet */}
+      {/* Incident detail sidebar */}
       {showSheet && selected && (
         <>
-          <div className="absolute inset-0 bg-black/40 z-20" onClick={closeSheet} />
+          {/*
+            Right sidebar rather than a bottom sheet. The sheet covered up to
+            65% of the map and dimmed the rest behind a scrim, so selecting a
+            pin hid the thing the pin was pointing at. As an overlay pinned to
+            the right edge the map keeps its full size underneath -- the
+            MapLibre container is still absolute inset-0 and never resizes, so
+            the map instance is untouched by this change.
+          */}
           <div
-            className="absolute bottom-0 left-0 right-0 z-30 rounded-t-3xl p-5 animate-slide-up"
-            style={{ background: '#111116', border: '1px solid #2A2A38', maxHeight: '65%', overflowY: 'auto' }}
+            className="absolute top-0 right-0 bottom-0 z-30 p-5 overflow-y-auto"
+            style={{
+              width: 360,
+              maxWidth: '100%',
+              background: '#111116',
+              borderLeft: '1px solid #2A2A38',
+            }}
           >
             <div className="flex items-start justify-between mb-4">
               <div>
