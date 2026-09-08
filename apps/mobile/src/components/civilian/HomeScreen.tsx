@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CoverageStatus } from '../../data/mockData';
-import { COVERAGE_DEVICES } from '../../data/mockData';
 
 interface Props {
   coverageStatus: CoverageStatus;
@@ -222,7 +221,15 @@ function SOSButton({ coverage, onFire }: { coverage: CoverageStatus; onFire: () 
   );
 }
 
-/* ── Weakening toast ── */
+/*
+ * ── Weakening toast ──
+ *
+ * No device count here. It used to read "3 devices left in range", which was a
+ * literal in the JSX -- not a number this screen had ever observed, and "in
+ * range" implies a distance the app cannot measure. Coverage is derived purely
+ * from how stale the responder's last heartbeat is (packages/comms/coverage.ts),
+ * so that is all the copy claims.
+ */
 function WeakeningToast({ onDismiss, onGuideBack }: { onDismiss: () => void; onGuideBack: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDismiss, 8000);
@@ -246,7 +253,7 @@ function WeakeningToast({ onDismiss, onGuideBack }: { onDismiss: () => void; onG
       }}
     >
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: '#E6EAF2', fontWeight: 500, marginBottom: 2 }}>
-        Signal weakening — 3 devices left in range.
+        Signal weakening — the relay link is going stale.
       </p>
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#8A97AC', marginBottom: 12 }}>
         You are moving away from the relay area.
@@ -298,8 +305,6 @@ export default function HomeScreen({
   onDismissToast,
   onGuideBack,
 }: Props) {
-  const devices = COVERAGE_DEVICES[coverageStatus];
-
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#0B1220' }}>
       {/* Top bar */}
@@ -434,7 +439,18 @@ export default function HomeScreen({
         )}
       </div>
 
-      {/* Footer */}
+      {/*
+        * Footer -- the entry point to NearbyMesh, deliberately without a count.
+        *
+        * It used to render COVERAGE_DEVICES[coverageStatus] as "14 devices
+        * nearby" on a link with one peer, the same fabrication removed from
+        * MeshStrip. The honest count is not re-plumbed here: MeshStrip sits a
+        * few pixels above this screen and already shows the observed peer total
+        * from the real PeerTable, and the only ways to repeat it here are a
+        * second MeshClient (a second WebSocket per phone) or threading the
+        * count through App for a number already on screen. Neither earns its
+        * cost -- so the button just says where it goes.
+        */}
       <div
         style={{
           flexShrink: 0,
@@ -455,10 +471,9 @@ export default function HomeScreen({
             border: 'none',
             padding: 0,
             cursor: 'pointer',
-            fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {devices === 0 ? 'No devices nearby' : `${devices} devices nearby`}
+          Nearby mesh →
         </button>
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#4A5A78' }}>
           Bengaluru
