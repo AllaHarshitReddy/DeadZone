@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MeshClient } from '../../services/mesh';
 import { getDatabase } from '../../services/pouchdb';
 import { enqueue, dequeue } from '../../services/queue';
+import { loadProfile } from '../../services/profile';
 import type { Envelope, SOSRequest } from '@sankat-setu/schema';
 import { RESPONDER_CONFIG, getOrCreateDeviceId, generateUUID } from '../../config';
 
@@ -96,6 +97,15 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
       // Envelope id doubles as the SOS document id, so the same report arriving
       // by several relay paths collapses to one record on every device.
       const needs = helpTypes.map((t) => HELP_LABEL[t] ?? t);
+
+      /**
+       * The medical profile this device collected once at ProfileSetup. Read
+       * from localStorage, so it costs no network and no gesture here -- the
+       * send beat stays exactly as long as it was. Absent when the civilian
+       * skipped the profile, in which case the fields are simply omitted.
+       */
+      const profile = loadProfile();
+
       const body: SOSRequest = {
         id: sosId,
         deviceId,
@@ -104,6 +114,15 @@ export default function SendingScreen({ severity, people, helpTypes = [], userNa
         // string on a responder's screen reads as "no number was given" less
         // clearly than the field simply being absent.
         ...(userPhone?.trim() ? { reporterPhone: userPhone.trim() } : {}),
+        // Same omit-rather-than-blank rule as reporterPhone above: an absent
+        // field reads as "not given", an empty one reads as a mistake.
+        ...(profile?.bloodGroup ? { bloodGroup: profile.bloodGroup } : {}),
+        ...(profile?.emergencyContacts?.length
+          ? { emergencyContacts: profile.emergencyContacts }
+          : {}),
+        ...(profile?.medicalNotes?.trim()
+          ? { medicalNotes: profile.medicalNotes.trim() }
+          : {}),
         incidentType: inferIncidentType(helpTypes),
         priority,
         victimCount: people,
