@@ -39,6 +39,16 @@ export interface SOSIncident {
   location: string;
   /** Raw fix to 4dp, shown as a monospace subtitle. '' when the SOS had no geo. */
   coords?: string;
+  /**
+   * Straight off the SOS document, absent unless the civilian filled in a
+   * profile. Never defaulted or inferred -- a blood group nobody entered is
+   * exactly the kind of number this app does not invent.
+   */
+  bloodGroup?: string;
+  emergencyContacts?: { name: string; phone: string }[];
+  medicalNotes?: string;
+  reporterName?: string;
+  reporterPhone?: string;
   hopStatus: HopStatus;
 }
 

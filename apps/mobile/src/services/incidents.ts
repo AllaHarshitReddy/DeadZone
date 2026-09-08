@@ -128,6 +128,14 @@ export function sosToIncident(sos: SOSRequest): SOSIncident {
     location: locationLabel(sos),
     coords: coordsLabel(sos),
     note: sos.description || undefined,
+    // Pass-through only. Every one of these is optional on SOSRequestSchema and
+    // stays undefined when the civilian skipped the profile, so the sidebar can
+    // tell "not given" from a value.
+    bloodGroup: sos.bloodGroup,
+    emergencyContacts: sos.emergencyContacts,
+    medicalNotes: sos.medicalNotes,
+    reporterName: sos.reporterName,
+    reporterPhone: sos.reporterPhone,
     hopStatus: 'delivered',
   };
 }

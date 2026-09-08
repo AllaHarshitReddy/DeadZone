@@ -1,57 +1,59 @@
 import { useState } from 'react';
+import type { BloodGroup, MedicalProfile } from '../../services/profile';
 
 /**
- * Built, reachable as the 'profile-setup' CivilianView, and deliberately NOT
- * routed into the civilian flow.
+ * Collects the medical profile once, so an SOS can carry a blood group and a
+ * next-of-kin number without the civilian typing anything mid-emergency.
  *
- * Nothing consumes what it collects. As of 8 Sep 2026:
- *   - SOSRequestSchema has no bloodGroup / emergencyContacts / medicalNotes
- *     field, so none of it can travel with an SOS
- *   - nothing persists a profile; localStorage holds only the device id, the
- *     SOS document store and the outbound queue
- *   - App passes `onFinish={(_profile) => ...}` and drops the value
+ * Routed as the 'profile-setup' CivilianView between login and home. What it
+ * collects is now actually consumed, which is what previously kept it out of
+ * the flow (taking medical data on an emergency app and discarding it is worse
+ * than not asking):
+ *   - SOSRequestSchema carries bloodGroup / emergencyContacts / medicalNotes
+ *   - services/profile.ts persists it to localStorage and rehydrates at login
+ *   - SendingScreen replays it into every SOS body
+ *   - the responder map sidebar renders it
  *
- * Routing it in as-is would take a blood group, next-of-kin numbers and
- * medical conditions on an emergency app and silently discard them, which is
- * worse than not asking. It would also add a step to the SOS beat, which is
- * measured at four gestures and is the most important part of the demo.
+ * The SOS beat itself is untouched at four gestures: this screen is passed
+ * once, before home, and never appears on the send path.
  *
- * TODO(post-sih): to make this real, in order —
- *   1. packages/schema: add bloodGroup, emergencyContacts[], medicalNotes to
- *      SOSRequestSchema (optional fields; this is the shared contract, so it
- *      affects every package -- flag it rather than editing quietly)
- *   2. persist the profile to localStorage on finish, and rehydrate at login
- *      so it survives a reload and Profile.tsx can display it
- *   3. populate the new fields in SendingScreen's SOS body, next to
- *      reporterName/reporterPhone
- *   4. surface them in the responder incident sidebar (MapView) and SOSList,
- *      since a blood group nobody can see is the same problem one step later
- *   5. the blood-group-to-allocation pathway: carry bloodGroup through to
- *      packages/triage so allocation can prefer a responder or facility
- *      carrying compatible stock. Note the constraint in CLAUDE.md -- triage
- *      and allocation are deterministic rules with explicit reason codes and
- *      must never touch the LLM -- so this is a rule over a compatibility
- *      table, and every allocation it influences needs its own reason code
- *      saying blood group was a factor. Anything less makes a life-critical
- *      decision unexplainable, which is the one thing the pitch rests on.
- *   6. only then route login -> profile-setup -> home, with "Skip for now"
- *      going straight to home
+ * TODO(post-sih): the blood-group-to-allocation pathway. Carrying bloodGroup
+ * into packages/triage so allocation can prefer a responder or facility with
+ * compatible stock needs an inventory to match against, and nothing in
+ * ResponderSchema carries one -- adding a fabricated blood stock to make the
+ * rule fire would be invented data on a life-critical path, which is exactly
+ * what the pitch promises we do not do. When a real inventory exists, the rule
+ * belongs in packages/triage as a deterministic match over a compatibility
+ * table with its own AllocationReasonCode saying blood group was a factor.
+ * Never the LLM (CLAUDE.md).
  */
 
 interface Props {
   name: string;
   phone: string;
-  onFinish: (profile: ProfileData) => void;
+  /** Save what was entered, then continue. */
+  onFinish: (profile: MedicalProfile) => void;
+  /** Continue without collecting anything. Must not be gated on a valid form. */
+  onSkip: () => void;
   onBack: () => void;
 }
 
-export interface ProfileData {
-  bloodGroup: string;
-  contacts: { name: string; phone: string }[];
-  medicalNotes: string;
-}
-
-const BLOOD_GROUPS = ['A+', 'A−', 'B+', 'B−', 'O+', 'O−', 'AB+', 'AB−'];
+/**
+ * Display label vs wire value. The label uses a typographic minus (U+2212)
+ * because a hyphen next to a capital letter reads as a dash at this size; the
+ * value is the ASCII form in BloodGroupSchema, so nothing downstream has to
+ * handle a lookalike character.
+ */
+const BLOOD_GROUPS: { value: BloodGroup; label: string }[] = [
+  { value: 'A+', label: 'A+' },
+  { value: 'A-', label: 'A−' },
+  { value: 'B+', label: 'B+' },
+  { value: 'B-', label: 'B−' },
+  { value: 'O+', label: 'O+' },
+  { value: 'O-', label: 'O−' },
+  { value: 'AB+', label: 'AB+' },
+  { value: 'AB-', label: 'AB−' },
+];
 
 function ContactRow({
   index,
@@ -155,8 +157,8 @@ function ContactRow({
   );
 }
 
-export default function ProfileSetup({ name, phone, onFinish, onBack }: Props) {
-  const [bloodGroup, setBloodGroup] = useState('');
+export default function ProfileSetup({ name, phone, onFinish, onSkip, onBack }: Props) {
+  const [bloodGroup, setBloodGroup] = useState<BloodGroup | ''>('');
   const [contacts, setContacts] = useState<{ name: string; phone: string }[]>([]);
   const [medicalNotes, setMedicalNotes] = useState('');
   const [showError, setShowError] = useState(false);
@@ -173,13 +175,19 @@ export default function ProfileSetup({ name, phone, onFinish, onBack }: Props) {
 
   const handleFinish = () => {
     if (!canFinish) { setShowError(true); return; }
-    onFinish({ bloodGroup, contacts, medicalNotes });
+    onFinish({
+      bloodGroup: bloodGroup || undefined,
+      emergencyContacts: contacts,
+      medicalNotes,
+    });
   };
 
-  const handleSkip = () => {
-    if (!canFinish) { setShowError(true); return; }
-    onFinish({ bloodGroup, contacts: [], medicalNotes: '' });
-  };
+  /**
+   * Skip is unconditional. It used to require a blood group before it would
+   * fire, which made "Skip for now" a second Finish button that refused to
+   * skip -- a dead end on the only screen between login and the SOS button.
+   */
+  const handleSkip = () => onSkip();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#0B1220' }}>
@@ -239,40 +247,40 @@ export default function ProfileSetup({ name, phone, onFinish, onBack }: Props) {
 
           {/* 4×2 grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
-            {BLOOD_GROUPS.map(bg => (
+            {BLOOD_GROUPS.map(({ value, label }) => (
               <button
-                key={bg}
-                onClick={() => { setBloodGroup(bg); setShowError(false); }}
+                key={value}
+                onClick={() => { setBloodGroup(value); setShowError(false); }}
                 style={{
                   padding: '10px 0',
                   borderRadius: 6,
                   fontFamily: "'Inter', sans-serif",
                   fontSize: '15px',
-                  fontWeight: bloodGroup === bg ? 600 : 400,
-                  background: bloodGroup === bg ? '#E5484D' : '#131C2E',
-                  border: `1px solid ${bloodGroup === bg ? '#E5484D' : showError && !hasBloodGroup ? '#E5484D44' : '#243044'}`,
-                  color: bloodGroup === bg ? '#ffffff' : '#E6EAF2',
+                  fontWeight: bloodGroup === value ? 600 : 400,
+                  background: bloodGroup === value ? '#E5484D' : '#131C2E',
+                  border: `1px solid ${bloodGroup === value ? '#E5484D' : showError && !hasBloodGroup ? '#E5484D44' : '#243044'}`,
+                  color: bloodGroup === value ? '#ffffff' : '#E6EAF2',
                   cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
               >
-                {bg}
+                {label}
               </button>
             ))}
           </div>
           {/* Not known — full width */}
           <button
-            onClick={() => { setBloodGroup('Not known'); setShowError(false); }}
+            onClick={() => { setBloodGroup('unknown'); setShowError(false); }}
             style={{
               width: '100%',
               padding: '10px 0',
               borderRadius: 6,
               fontFamily: "'Inter', sans-serif",
               fontSize: '15px',
-              fontWeight: bloodGroup === 'Not known' ? 600 : 400,
-              background: bloodGroup === 'Not known' ? '#131C2E' : '#131C2E',
-              border: `1px solid ${bloodGroup === 'Not known' ? '#22D3EE' : showError && !hasBloodGroup ? '#E5484D44' : '#243044'}`,
-              color: bloodGroup === 'Not known' ? '#22D3EE' : '#8A97AC',
+              fontWeight: bloodGroup === 'unknown' ? 600 : 400,
+              background: '#131C2E',
+              border: `1px solid ${bloodGroup === 'unknown' ? '#22D3EE' : showError && !hasBloodGroup ? '#E5484D44' : '#243044'}`,
+              color: bloodGroup === 'unknown' ? '#22D3EE' : '#8A97AC',
               cursor: 'pointer',
               transition: 'all 0.15s',
             }}
@@ -405,11 +413,11 @@ export default function ProfileSetup({ name, phone, onFinish, onBack }: Props) {
           style={{
             fontFamily: "'Inter', sans-serif",
             fontSize: '15px',
-            color: canFinish ? '#8A97AC' : '#4A5A78',
+            color: '#8A97AC',
             background: 'none',
             border: 'none',
             padding: '4px 0',
-            cursor: canFinish ? 'pointer' : 'default',
+            cursor: 'pointer',
             textAlign: 'center',
           }}
         >

@@ -14,7 +14,7 @@ import CoverageLostScreen from './components/civilian/CoverageLostScreen';
 import ReturnGuidance from './components/civilian/ReturnGuidance';
 import LiveTracking from './components/civilian/LiveTracking';
 import NearbyMesh from './components/civilian/NearbyMesh';
-import ProfileSetup, { type ProfileData } from './components/civilian/ProfileSetup';
+import ProfileSetup from './components/civilian/ProfileSetup';
 
 // ── Responder UI (unchanged) ─────────────────────────────────────────────────
 import StatusBanner from './components/StatusBanner';
@@ -27,6 +27,7 @@ import { MOCK_INCIDENTS, USE_MOCK_DATA, type SOSIncident, type NetworkStatus, ty
 import { MeshClient } from './services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from './config';
 import { sosToIncident } from './services/incidents';
+import { hasProfile, saveProfile } from './services/profile';
 import type { SOSRequest } from '@sankat-setu/schema';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -202,7 +203,16 @@ export default function App() {
           <div style={{ height: 'max(env(safe-area-inset-top, 0px), 59px)', background: '#0B1220', flexShrink: 0 }} />
           <MeshStrip status={coverageStatus} onPress={cycleCoverage} />
           <LoginScreen
-            onEnter={data => { setUser(data); setRole(data.role); }}
+            onEnter={data => {
+              setUser(data);
+              setRole(data.role);
+              // Ask for the medical profile once, before home. hasProfile() is
+              // true after either Finish or Skip, so a civilian who declined is
+              // not asked again on every login.
+              if (data.role === 'civilian') {
+                setCivilianView(hasProfile() ? 'home' : 'profile-setup');
+              }
+            }}
             onLanguage={() => {}}
           />
         </div>
@@ -234,7 +244,21 @@ export default function App() {
               name={user.name}
               phone={user.phone}
               onBack={() => { setUser(null); setRole(null); }}
-              onFinish={(_profile: ProfileData) => setCivilianView('home')}
+              onFinish={(profile) => {
+                // A failed write is logged by saveProfile and deliberately not
+                // surfaced or blocking: losing a profile must never stand
+                // between someone and the SOS button.
+                saveProfile(profile);
+                setCivilianView('home');
+              }}
+              onSkip={() => {
+                // Store the empty profile rather than nothing, so hasProfile()
+                // records that we asked and they declined. Without this the
+                // screen reappears at every login, turning an optional step
+                // into a recurring obstacle in front of the SOS button.
+                saveProfile({});
+                setCivilianView('home');
+              }}
             />
           )}
 
