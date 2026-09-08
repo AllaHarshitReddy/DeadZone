@@ -27,6 +27,24 @@ Do all of this before anyone is watching. Every line is a demo that died once.
 
 ### Laptop
 
+**Free memory before you start anything.** On 8 Sep the laptop sat at ~2 GB free
+of 16 GB, and Windows killed the tile server, the API and Vite within minutes of
+them starting — silently, with no error in any terminal. The ports simply went
+quiet while the responder tab kept showing its last-painted state, so everything
+looked healthy from the screen. Close Discord and spare browser windows; target
+**at least 4 GB free** before the first service, and remember Ollama wants
+~2.5 GB on top of that.
+
+**Start every service in its own independent terminal.** Services started inside
+a Claude Code session (or any agent/background runner) are the first thing
+Windows reaps under memory pressure. Three plain terminals survive; background
+tasks under a tool session do not.
+
+**Verify each port after starting it — do not assume.** The tile server has been
+in this list since 6 Sep and the map still fell back on 8 Sep, because it was
+never actually started that morning. The sequence being written down is not the
+same as it having run. The `curl` ready-checks below exist for exactly this.
+
 **Start in this order and do not skip a ready-check.** Each service depends on
 the one above it. Starting Vite before the tile server is up is the usual cause
 of an empty Map tab that looks like a code failure.
@@ -297,10 +315,38 @@ come back to the weather beat only if it answers.
 the cached object. Use it — see Beat 5 — or re-ask with one of the verified
 questions.
 
-**Responder map is blank or falls back to the sketch grid.** The tile server on
-:3000 is down or was never started. `cd apps/dashboard && pnpm dev`, then switch
-the responder view away and back. The SVG fallback is deliberate — the rest of
-the responder screen (list, triage, pins) still works over it.
+**Responder map is wrong — two different failures, tell them apart first.**
+They look similar and have different fixes. The console decides it in seconds.
+
+*Signature A — grey hand-drawn blocks, and the console says:*
+
+```
+[MapView] falling back to the sketch map: Error: style 502
+```
+
+The tile server on :3000 is down or was never started; Vite's proxy returns 502
+when its target is missing. `cd apps/dashboard && pnpm dev`, then **switch the
+responder view away and back** (SOS tab, then Map). That unmounts MapView and
+re-runs its init, which is faster than a reload. A soft refresh alone does not
+clear it — `mapError` latches at init and only resets on remount. The SVG
+fallback is deliberate: the list, triage and pins still work over it.
+
+*Signature B — empty dark canvas, pins visible, console clean.* The map
+initialised fine and the tiles are 404ing. **Nothing is logged**: MapView
+deliberately swallows 404s (`MapView.tsx:176`), because a missing tile or glyph
+range is normally harmless. Open the Network tab and look for red `.pbf`
+requests — nothing else will tell you. Usually means the tile server is up but
+serving the wrong directory. Verify with the proxy path the app actually uses,
+not the direct one:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}
+' http://localhost:8443/tiles/bengaluru/10/732/474.pbf   # 200
+```
+
+Signature B is the one that will rattle you mid-demo, because it looks like a
+styling bug rather than a service being down. Narrate over it and move on — the
+pins and the incident rail carry the beat without a basemap.
 
 **Map renders but has no labels.** Glyphs aren't being served. Check
 `curl http://localhost:3000/glyphs/Noto%20Sans%20Regular/0-255.pbf`. Not fixable
