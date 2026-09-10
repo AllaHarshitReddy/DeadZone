@@ -27,7 +27,7 @@ import { MOCK_INCIDENTS, USE_MOCK_DATA, type SOSIncident, type NetworkStatus, ty
 import { MeshClient } from './services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from './config';
 import { sosToIncident } from './services/incidents';
-import { hasProfile, saveProfile } from './services/profile';
+import { clearProfile, hasProfile, saveProfile } from './services/profile';
 import type { SOSRequest } from '@sankat-setu/schema';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -142,7 +142,15 @@ export default function App() {
     });
   }, []);
 
+  // Clearing the medical profile is part of logging out, not housekeeping.
+  // It is stored under one device-wide key, so without this the next person to
+  // log in on the same handset inherits the previous one: hasProfile() is true,
+  // ProfileSetup never appears, and SendingScreen stamps someone else's blood
+  // group and next of kin onto their SOS.
+  // TODO(post-sih): key the profile by user, so it survives a legitimate logout
+  // instead of being discarded to keep it from leaking.
   const logout = useCallback(() => {
+    clearProfile();
     setUser(null); setRole(null); setCivilianView('home');
     setSosPending(false); setSOSData({});
   }, []);
@@ -243,7 +251,7 @@ export default function App() {
             <ProfileSetup
               name={user.name}
               phone={user.phone}
-              onBack={() => { setUser(null); setRole(null); }}
+              onBack={logout}
               onFinish={(profile) => {
                 // A failed write is logged by saveProfile and deliberately not
                 // surfaced or blocking: losing a profile must never stand
