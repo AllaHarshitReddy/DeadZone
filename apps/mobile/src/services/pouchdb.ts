@@ -4,7 +4,7 @@
  * Stores SOS records in browser localStorage.
  */
 
-import type { SOSRequest } from "@sankat-setu/schema";
+import type { SOSRequest } from "@deadzone/schema";
 
 export interface SyncStatus {
   inProgress: boolean;
@@ -18,7 +18,7 @@ export interface SyncStatus {
  * Simple, reliable, works everywhere.
  */
 class StorageDatabase {
-  private dbKey = "sankatsetu_sos_db";
+  private dbKey = "deadzone_sos_db";
   private docs = new Map<string, SOSRequest>();
   private changeListeners: Array<() => void> = [];
 

@@ -8,7 +8,7 @@
  * separate means the queue needs no change to the shared contract.
  */
 
-import type { Envelope, SOSRequest } from "@sankat-setu/schema";
+import type { Envelope, SOSRequest } from "@deadzone/schema";
 import { getDatabase } from "./pouchdb";
 
 /** Only the surface drainQueue needs, so tests can pass a plain fake. */
@@ -20,7 +20,7 @@ interface SOSStore {
   getAllSOS(): Promise<SOSRequest[]>;
 }
 
-const QUEUE_KEY = "sankatsetu_pending_sos";
+const QUEUE_KEY = "deadzone_pending_sos";
 
 function readQueue(): string[] {
   try {

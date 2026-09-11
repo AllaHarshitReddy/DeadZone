@@ -2,7 +2,7 @@ import os from "node:os";
 import { createServer } from "http";
 import express from "express";
 import PouchDB from "pouchdb";
-import { PeerTable } from "@sankat-setu/comms";
+import { PeerTable } from "@deadzone/comms";
 import { couchDbUrl, getCouchConfig, remotePouchDbOptions } from "../scripts/couchdb";
 import { attachMeshServer } from "./mesh";
 

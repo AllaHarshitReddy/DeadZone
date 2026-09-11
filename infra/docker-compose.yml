@@ -1,7 +1,7 @@
 services:
   couchdb:
     image: couchdb:3
-    container_name: sankat-setu-couchdb
+    container_name: deadzone-couchdb
     restart: unless-stopped
     ports:
       - "5984:5984"

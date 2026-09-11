@@ -1,7 +1,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import type { Envelope, SOSRequest } from "@sankat-setu/schema";
+import type { Envelope, SOSRequest } from "@deadzone/schema";
 import { enqueue, dequeue, pendingCount, envelopeFor, drainQueue } from "./queue";
 
 /** queue.ts persists through localStorage, which Node has no notion of. */

@@ -3,8 +3,8 @@
  * and sends/receives SOS messages via Envelopes.
  */
 
-import { type Envelope, EnvelopeSchema } from "@sankat-setu/schema";
-import { serializeEnvelope, deserializeEnvelope, type PeerHeartbeat } from "@sankat-setu/comms";
+import { type Envelope, EnvelopeSchema } from "@deadzone/schema";
+import { serializeEnvelope, deserializeEnvelope, type PeerHeartbeat } from "@deadzone/comms";
 
 export type MeshStatus = "disconnected" | "connecting" | "connected" | "error";
 export type HeartbeatPayload = { deviceId: string; isResponder: boolean; geo?: { lat: number; lng: number } };

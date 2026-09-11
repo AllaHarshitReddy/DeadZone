@@ -1,5 +1,5 @@
 {
-  "name": "@sankat-setu/api",
+  "name": "@deadzone/api",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -10,8 +10,8 @@
     "sync-test": "tsx scripts/sync-test.ts"
   },
   "dependencies": {
-    "@sankat-setu/comms": "workspace:*",
-    "@sankat-setu/schema": "workspace:*",
+    "@deadzone/comms": "workspace:*",
+    "@deadzone/schema": "workspace:*",
     "express": "^5.2.1",
     "pouchdb": "^9.0.0",
     "ws": "^8.18.0"

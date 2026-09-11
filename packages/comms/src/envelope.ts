@@ -1,4 +1,4 @@
-import { EnvelopeSchema, type Envelope } from "@sankat-setu/schema";
+import { EnvelopeSchema, type Envelope } from "@deadzone/schema";
 
 /**
  * Serializes an Envelope to JSON for transmission over the wire.

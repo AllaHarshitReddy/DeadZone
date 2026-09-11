@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { GeoPoint } from "@sankat-setu/schema";
+import type { GeoPoint } from "@deadzone/schema";
 
 /**
  * A peer on the mesh -- either another phone on the local hotspot or

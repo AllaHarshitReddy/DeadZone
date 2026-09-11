@@ -28,7 +28,7 @@ import { MeshClient } from './services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from './config';
 import { sosToIncident } from './services/incidents';
 import { clearProfile, hasProfile, saveProfile } from './services/profile';
-import type { SOSRequest } from '@sankat-setu/schema';
+import type { SOSRequest } from '@deadzone/schema';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Role = 'civilian' | 'responder' | null;

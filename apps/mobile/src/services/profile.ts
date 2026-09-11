@@ -13,10 +13,10 @@
  */
 
 import { z } from "zod";
-import { BloodGroupSchema, EmergencyContactSchema } from "@sankat-setu/schema";
-import type { BloodGroup, EmergencyContact } from "@sankat-setu/schema";
+import { BloodGroupSchema, EmergencyContactSchema } from "@deadzone/schema";
+import type { BloodGroup, EmergencyContact } from "@deadzone/schema";
 
-const PROFILE_KEY = "sankatsetu_medical_profile";
+const PROFILE_KEY = "deadzone_medical_profile";
 
 /**
  * Mirrors the medical fields on SOSRequestSchema rather than inventing a second

@@ -8,8 +8,8 @@ import {
   adaptToTriageInput,
   type TriageOutcome,
   TRIAGE_TAG_COLOR,
-} from "@sankat-setu/triage";
-import type { SOSRequest, VictimVitals, TriageCategory } from "@sankat-setu/schema";
+} from "@deadzone/triage";
+import type { SOSRequest, VictimVitals, TriageCategory } from "@deadzone/schema";
 
 /**
  * Triage an incoming SOS report.

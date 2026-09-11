@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import PouchDB from "pouchdb";
-import { SOSRequestSchema, type SOSRequest } from "@sankat-setu/schema";
+import { SOSRequestSchema, type SOSRequest } from "@deadzone/schema";
 
 // Repo-root-relative: data/seed/ is fictional demo data, not app state --
 // see CLAUDE.md's structure section. Resolved from process.cwd() rather

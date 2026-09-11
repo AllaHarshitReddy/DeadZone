@@ -1,5 +1,5 @@
 {
-  "name": "@sankat-setu/triage",
+  "name": "@deadzone/triage",
   "version": "0.0.1",
   "private": true,
   "main": "./src/index.ts",
@@ -9,7 +9,7 @@
     "test": "tsx --test src/triage.test.ts src/adapter.test.ts src/allocate.test.ts"
   },
   "dependencies": {
-    "@sankat-setu/schema": "workspace:*",
+    "@deadzone/schema": "workspace:*",
     "zod": "^4.5.4"
   },
   "devDependencies": {

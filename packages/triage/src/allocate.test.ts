@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import type { Responder } from "@sankat-setu/schema";
+import type { Responder } from "@deadzone/schema";
 import { allocate, haversineDistanceKm, type AllocationCandidate } from "./allocate";
 
 function makeResponder(overrides: Partial<Responder> = {}): Responder {

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import type { SOSRequest, VictimVitals } from "@sankat-setu/schema";
+import type { SOSRequest, VictimVitals } from "@deadzone/schema";
 import { adaptToTriageInput } from "./adapter";
 import { triage } from "./triage";
 

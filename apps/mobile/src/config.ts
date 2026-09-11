@@ -28,7 +28,7 @@ export const RESPONDER_CONFIG = {
 
   // CouchDB remote (for PouchDB sync when online)
   couchUrl: import.meta.env.VITE_COUCH_URL || "http://localhost:5984",
-  couchDb: "sankatsetu",
+  couchDb: "deadzone",
   couchAuth: {
     username: import.meta.env.VITE_COUCH_USER || "admin",
     password: import.meta.env.VITE_COUCH_PASS || "changeme",
@@ -37,7 +37,7 @@ export const RESPONDER_CONFIG = {
 
 // Device identification (generated once per app instance)
 export function getOrCreateDeviceId(): string {
-  const key = "sankat_device_id";
+  const key = "deadzone_device_id";
   let deviceId = localStorage.getItem(key);
   if (!deviceId) {
     deviceId = generateUUID();
