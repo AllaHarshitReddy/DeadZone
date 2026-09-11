@@ -480,6 +480,8 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
               </div>
             )}
 
+            <MedicalPanel incident={selected} />
+
             <TeamAssignment incidentId={selected.id} />
           </div>
         </>
@@ -493,6 +495,97 @@ export default function MapView({ incidents, selectedId, onSelect, networkStatus
  * schematic city that shipped before the real basemap landed. Pins use the
  * legacy x/y percentages.
  */
+/**
+ * Blood group, next of kin and medical notes from the civilian's profile.
+ *
+ * Renders nothing at all when the SOS carried none of it. That is the point:
+ * a responder must be able to tell "this person gave us a blood group" from
+ * "we do not know", and a panel with an em dash in every row blurs the two.
+ * Nothing here is inferred or defaulted -- these are the civilian's own words.
+ *
+ * Displayed but not acted on: allocation does not read blood group (see the
+ * TODO in ProfileSetup.tsx). Showing a responder what the person told us is
+ * the useful half and needs no fabricated blood inventory to work.
+ */
+function MedicalPanel({ incident }: { incident: SOSIncident }) {
+  const contacts = incident.emergencyContacts ?? [];
+  const notes = incident.medicalNotes?.trim();
+  const phone = incident.reporterPhone?.trim();
+  if (!incident.bloodGroup && contacts.length === 0 && !notes && !phone) return null;
+
+  // "unknown" is an answer the civilian gave, not a missing field.
+  const bloodLabel =
+    incident.bloodGroup === 'unknown'
+      ? 'Not known'
+      : incident.bloodGroup?.replace('-', '−');
+
+  return (
+    <div className="rounded-xl p-3 mb-4 border border-[#2A2A38]" style={{ background: '#18181F' }}>
+      <div
+        className="text-[#5A5A6A] text-xs mb-2 tracking-widest"
+        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+      >
+        MEDICAL PROFILE
+      </div>
+
+      {bloodLabel && (
+        <div className="flex items-baseline gap-2 mb-2">
+          <span className="text-[#5A5A6A] text-xs">Blood group</span>
+          <span
+            className="text-lg font-black"
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              color: incident.bloodGroup === 'unknown' ? '#8A8A9A' : '#DC2626',
+            }}
+          >
+            {bloodLabel}
+          </span>
+        </div>
+      )}
+
+      {phone && (
+        <div className="flex items-baseline gap-2 mb-2">
+          <span className="text-[#5A5A6A] text-xs">Reporter</span>
+          <a
+            href={`tel:${phone}`}
+            className="text-[#F0F0F6] text-sm"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            {phone}
+          </a>
+        </div>
+      )}
+
+      {contacts.length > 0 && (
+        <div className="mb-2">
+          <div className="text-[#5A5A6A] text-xs mb-1">Emergency contacts</div>
+          {contacts.map((c, i) => (
+            <div key={`${c.phone}-${i}`} className="flex items-baseline justify-between gap-2">
+              <span className="text-[#8A8A9A] text-sm truncate">{c.name}</span>
+              <a
+                href={`tel:${c.phone}`}
+                className="text-[#F0F0F6] text-sm flex-shrink-0"
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                {c.phone}
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {notes && (
+        <div>
+          <div className="text-[#5A5A6A] text-xs mb-1">Medical notes</div>
+          <div className="text-[#F0F0F6] text-sm" style={{ whiteSpace: 'pre-wrap' }}>
+            {notes}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TEAM_STATUS: Record<string, { label: string; color: string }> = {
   available: { label: 'Available', color: '#30A46C' },
   in_transit: { label: 'En route', color: '#F5A524' },

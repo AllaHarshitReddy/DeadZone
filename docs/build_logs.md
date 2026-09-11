@@ -263,3 +263,31 @@ error-message text — none of which is ever fetched.
 `LoginScreen` and `RoleSelect` contain Devanagari text, and none of these three
 families ship Devanagari glyphs — that was equally true before this change,
 online or off. Fixing it means adding Noto Sans Devanagari; not done.
+
+---
+
+## Medical profile leaked between logins on a shared handset (10 Sep)
+
+**What broke:** the medical profile is stored under a single device-wide key,
+`sankatsetu_medical_profile` (`apps/mobile/src/services/profile.ts`), with no
+user in it, and login gates the setup screen purely on `hasProfile()`. So on the
+one handset we demo with: civilian A saves a blood group and next-of-kin numbers,
+logs out, civilian B logs in — `hasProfile()` is still true, ProfileSetup never
+appears, and `SendingScreen` stamps A's blood group and A's contacts onto B's SOS.
+The responder's MEDICAL PROFILE panel then presents them as B's. Invented
+life-critical data, which is the one thing the pitch rests on this app not doing.
+Found in the 10 Sep code review of `feat/medical-profile`.
+
+**Fix:** `clearProfile()` now runs as the first statement of `logout` in
+`App.tsx`. ProfileSetup's `onBack` was a second, divergent route back to the
+login screen (`() => { setUser(null); setRole(null); }`) that would have bypassed
+the clear, so it is rerouted through `logout` — one exit path. `clearProfile()`
+itself already existed and was correct; it was exported and called from nowhere.
+`PROFILE_KEY` and the stored shape are untouched.
+
+**Remaining gap — matters for the demo:** this only covers a deliberate logout. A
+page reload, a new tab, or Chrome discarding the tab drops React state and returns
+to `LoginScreen` without `logout` ever running, and the profile survives in
+localStorage. So the handover between the two civilians must go through the in-app
+Back / logout button, never a refresh. The fix that closes both doors is keying the
+profile by user, which is a storage-schema change and is deferred post-SIH.

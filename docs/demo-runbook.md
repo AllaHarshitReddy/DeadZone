@@ -109,6 +109,14 @@ responses.
 `OLLAMA_KEEP_ALIVE=-1` keeps it resident afterwards. Without it the model
 unloads while idle and you pay the cold start again, mid-demo.
 
+**Warm every question you will ask, not just one (10 Sep).** The wind refusal
+took **11.3s on its first ask**, 2.9s on the second, and 0.6s from the third on
+-- while the rain question was already warm from its own warm-up. The cost is
+per-question, not per-model, so one warmed question leaves the *other* beats
+cold. Eleven seconds of silence is where Beat 5's strongest moment used to be.
+Fire all four questions -- rain, heaviest rain, risk level, wind -- three times
+each, and do not start until the last of them lands under two seconds.
+
 `OLLAMA_HOST=0.0.0.0` is what lets the phone reach the laptop. It also opens the
 model API to the whole network - only ever on the isolated demo hotspot, never
 on venue Wi-Fi.
@@ -419,7 +427,7 @@ Five clean consecutive runs before the 10th. Record the fifth as the backup.
 | 1 | 6 Sep, evening | ✅ Clean | Nothing. First run on the merged build: real offline basemap, live phone SOS landing as a pin, all beats through. |
 | 2 | 6 Sep, evening | ✅ Clean | Nothing. Run straight after 1, no restarts between them. |
 | 3 | 7 Sep, night | ✅ Clean | Nothing. First run on the current UI (map sidebar, incident rail, description-based titles, team dropdown, working Allocate) and the first from a genuinely cold Ollama — no model resident, tray app confirmed not running. |
-| 4 | | | |
+| 4 | 10 Sep | 🟡 Part 1 only | Automated gates all pass -- typecheck, 53/53 tests, sync-test 5/5 (120 records, zero loss), edge node 0.9s warm. The timed manual run was **not** executed: no phone in the session. Run-sheet, measured numbers and three findings in `rehearsal-4.md`. |
 | 5 | | | |
 
 Wall-clock durations were not captured for runs 1 and 2 — time them from run 3
