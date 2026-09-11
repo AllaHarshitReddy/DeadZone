@@ -33,10 +33,10 @@ importers:
 
   apps/api:
     dependencies:
-      '@sankat-setu/comms':
+      '@deadzone/comms':
         specifier: workspace:*
         version: link:../../packages/comms
-      '@sankat-setu/schema':
+      '@deadzone/schema':
         specifier: workspace:*
         version: link:../../packages/schema
       express:
@@ -73,13 +73,13 @@ importers:
 
   apps/mobile:
     dependencies:
-      '@sankat-setu/comms':
+      '@deadzone/comms':
         specifier: workspace:*
         version: link:../../packages/comms
-      '@sankat-setu/schema':
+      '@deadzone/schema':
         specifier: workspace:*
         version: link:../../packages/schema
-      '@sankat-setu/triage':
+      '@deadzone/triage':
         specifier: workspace:*
         version: link:../../packages/triage
       maplibre-gl:
@@ -128,7 +128,7 @@ importers:
 
   packages/comms:
     dependencies:
-      '@sankat-setu/schema':
+      '@deadzone/schema':
         specifier: workspace:*
         version: link:../schema
       zod:
@@ -147,7 +147,7 @@ importers:
 
   packages/triage:
     dependencies:
-      '@sankat-setu/schema':
+      '@deadzone/schema':
         specifier: workspace:*
         version: link:../schema
       zod:

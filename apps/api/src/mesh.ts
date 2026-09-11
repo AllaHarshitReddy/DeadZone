@@ -5,8 +5,8 @@ import {
   tryDeserializeEnvelope,
   PeerTable,
   type PeerHeartbeatPayload,
-} from "@sankat-setu/comms";
-import type { Envelope, SOSRequest } from "@sankat-setu/schema";
+} from "@deadzone/comms";
+import type { Envelope, SOSRequest } from "@deadzone/schema";
 
 /**
  * Mesh server: WebSocket endpoint at /mesh for LAN-based peer-to-peer

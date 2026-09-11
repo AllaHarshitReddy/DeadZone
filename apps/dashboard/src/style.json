@@ -1,10 +1,10 @@
 {
   "version": 8,
-  "name": "Sankat Setu Offline — Bengaluru",
+  "name": "DeadZone Offline — Bengaluru",
   "metadata": {
-    "sankatsetu:offline": true,
-    "sankatsetu:note": "Every URL here is same-origin. Tiles, glyphs and sprites are served from data/tiles/. Nothing is fetched from the internet. Verified by apps/dashboard/scripts/verify-offline.js.",
-    "sankatsetu:source": "Bengaluru extract of the Protomaps daily build 20260905, z0-14."
+    "deadzone:offline": true,
+    "deadzone:note": "Every URL here is same-origin. Tiles, glyphs and sprites are served from data/tiles/. Nothing is fetched from the internet. Verified by apps/dashboard/scripts/verify-offline.js.",
+    "deadzone:source": "Bengaluru extract of the Protomaps daily build 20260905, z0-14."
   },
   "glyphs": "./glyphs/{fontstack}/{range}.pbf",
   "sprite": "./sprites/light",

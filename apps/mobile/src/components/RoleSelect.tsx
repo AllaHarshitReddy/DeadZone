@@ -10,7 +10,7 @@ export default function RoleSelect({ onSelect }: Props) {
           className="text-[#F0F0F6] font-black tracking-[0.2em] mb-1"
           style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '36px' }}
         >
-          SANKAT SETU
+          DEADZONE
         </div>
         <div
           className="text-[#5A5A6A] tracking-[0.25em] uppercase"

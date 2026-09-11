@@ -1,7 +1,7 @@
 import { couchDbUrl, ensureDatabase, getCouchConfig } from "./couchdb";
 
 /**
- * Idempotent CouchDB setup: creates the `sankatsetu` database if it doesn't
+ * Idempotent CouchDB setup: creates the `deadzone` database if it doesn't
  * already exist. Run this once after `docker compose up` (infra/docker-compose.yml),
  * and again any time you tear the volume down.
  */

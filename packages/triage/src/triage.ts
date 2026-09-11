@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { TriageCategory } from "@sankat-setu/schema";
+import type { TriageCategory } from "@deadzone/schema";
 
 /**
  * The START (Simple Triage and Rapid Treatment) mass-casualty protocol.

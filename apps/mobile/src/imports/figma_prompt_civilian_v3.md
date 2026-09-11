@@ -1,4 +1,4 @@
-# DeadZone SOS — Figma AI Prompt (Civilian App v3)
+# DeadZone — Figma AI Prompt (Civilian App v3)
 
 Three changes over v2: a **passive coverage-loss alert system**, a **hard fix for the Dynamic Island collision**, and a **UX/visual pass** to remove the generated look.
 
@@ -8,7 +8,7 @@ Three changes over v2: a **passive coverage-loss alert system**, a **hard fix fo
 
 ## Part 1 — Foundations (apply to every screen)
 
-Dark-mode React Native screens for **DeadZone SOS**, a civilian offline mesh emergency app. Frame 390×844, iPhone with Dynamic Island.
+Dark-mode React Native screens for **DeadZone**, a civilian offline mesh emergency app. Frame 390×844, iPhone with Dynamic Island.
 
 **Dynamic Island — hard constraint.** The island occupies a 126×37pt pill centred horizontally, from y=11 to y=48. No text, icon, dot or control may fall inside x=132–258, y=0–59 on any screen. Status/connectivity bars are the repeat offender: a full-width status bar must **start below y=59**, not run behind the island. If a bar needs to sit in the island row, split it into two segments — left of x=126 and right of x=264 — with the centre left empty. Show every screen with the island drawn in, so the collision is visible if it exists.
 

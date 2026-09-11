@@ -111,7 +111,7 @@ Check what's in there:
 
 ```powershell
 $h=@{Authorization="Basic "+[Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:changeme"))}
-(Invoke-RestMethod "http://localhost:5984/sankatsetu" -Headers $h).doc_count    # expect 20 when clean
+(Invoke-RestMethod "http://localhost:5984/deadzone" -Headers $h).doc_count    # expect 20 when clean
 ```
 
 Do this **after** your last rehearsal. Then **hard-reload the phone** (clear

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { MeshClient } from '../../services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from '../../config';
-import { computeCoverage } from '@sankat-setu/comms';
+import { computeCoverage } from '@deadzone/comms';
 import { drainQueue } from '../../services/queue';
-import { PeerTable, type PeerHeartbeatPayload } from '@sankat-setu/comms';
+import { PeerTable, type PeerHeartbeatPayload } from '@deadzone/comms';
 import type { CoverageStatus } from '../../data/mockData';
 
 interface Props {

@@ -1,8 +1,8 @@
-# Sankat Setu
+# DeadZone
 
 **An offline-first AI-powered disaster response network.**
 
-> When networks go down, Sankat Setu keeps rescue operations moving.
+> When networks go down, DeadZone keeps rescue operations moving.
 
 Built for Smart India Hackathon 2026.
 
@@ -10,7 +10,7 @@ Built for Smart India Hackathon 2026.
 
 ## The problem
 
-When a flood, landslide or cyclone takes down cellular and internet in a region, victims cannot call for help and responders cannot coordinate — precisely when speed saves lives. Existing emergency apps assume connectivity. Sankat Setu assumes its absence.
+When a flood, landslide or cyclone takes down cellular and internet in a region, victims cannot call for help and responders cannot coordinate — precisely when speed saves lives. Existing emergency apps assume connectivity. DeadZone assumes its absence.
 
 ## What it does
 

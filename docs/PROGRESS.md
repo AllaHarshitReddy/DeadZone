@@ -60,8 +60,8 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 ## Track detail
 
 ### A — Data spine
-- [x] CouchDB running (native Windows service, 3.3.0 on :5984), `sankatsetu`
-      database created — `pnpm --filter @sankat-setu/api setup-db` idempotent
+- [x] CouchDB running (native Windows service, 3.3.0 on :5984), `deadzone`
+      database created — `pnpm --filter @deadzone/api setup-db` idempotent
 - [x] Seed data in CouchDB — the 20 canonical SOS records are present and
       visible in Fauxton (`pnpm seed` locks against the running server's
       `.data/local`; run it with the api server stopped, or they replicate down
@@ -130,7 +130,7 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 - [x] Reason code on every output
 - [x] SOS-field adapter with documented assumptions
 - [x] Greedy allocation by category then distance, with capacity limits
-- [x] Tests cover every branch — **42 pass, 0 fail** (`pnpm --filter @sankat-setu/triage test`)
+- [x] Tests cover every branch — **42 pass, 0 fail** (`pnpm --filter @deadzone/triage test`)
 
 ### E — LAN transport
 - [x] Express + WebSocket bound to `0.0.0.0` — confirmed listening on :4000
@@ -394,7 +394,7 @@ tracked (see 6 Sep daily log). PR not opened yet.
 - **Demo weather.** Live forecast is 0.4 mm / GREEN — criterion 2 works but the
   risk-band logic never shows its teeth. Take live weather on the day, or
   prepare a severe cache and label it plainly as illustrative. Also: the cache
-  itself expires **2026-09-11T23:00** — re-run `pnpm --filter @sankat-setu/ai
+  itself expires **2026-09-11T23:00** — re-run `pnpm --filter @deadzone/ai
   fetch-weather` on the 9th or 10th regardless.
 
 **Then:**

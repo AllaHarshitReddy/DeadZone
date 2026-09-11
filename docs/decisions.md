@@ -1,6 +1,6 @@
 # Decisions — what we are not building
 
-Sankat Setu's demo deadline is **10 September 2026**. This is a six-day
+DeadZone's demo deadline is **10 September 2026**. This is a six-day
 sprint, not a product build. The bias is: fewer features, working
 reliably, demonstrable offline. A judge who watches one SOS cross three
 phones in airplane mode and then sync will remember it — five

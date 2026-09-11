@@ -3,7 +3,7 @@ import { MeshClient } from '../../services/mesh';
 import { getDatabase } from '../../services/pouchdb';
 import { enqueue, dequeue } from '../../services/queue';
 import { loadProfile } from '../../services/profile';
-import type { Envelope, SOSRequest } from '@sankat-setu/schema';
+import type { Envelope, SOSRequest } from '@deadzone/schema';
 import { RESPONDER_CONFIG, getOrCreateDeviceId, generateUUID } from '../../config';
 
 interface Props {

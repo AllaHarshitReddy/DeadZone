@@ -1,4 +1,4 @@
-import type { GeoPoint, Responder, TriageCategory } from "@sankat-setu/schema";
+import type { GeoPoint, Responder, TriageCategory } from "@deadzone/schema";
 
 /**
  * Greedy nearest-available responder allocation.

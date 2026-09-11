@@ -1,4 +1,4 @@
-import type { SOSRequest, VictimVitals } from "@sankat-setu/schema";
+import type { SOSRequest, VictimVitals } from "@deadzone/schema";
 import type { TriageInput } from "./triage";
 
 /**

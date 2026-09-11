@@ -223,7 +223,7 @@ packages/
 
 2. **Create service layer** (`apps/mobile/src/services/`)
    - `mesh.ts`: WebSocket connection + Envelope send/receive
-   - `triage.ts`: Import `@sankat-setu/triage`, call locally
+   - `triage.ts`: Import `@deadzone/triage`, call locally
    - `pouchdb.ts`: Local DB init + sync setup
 
 3. **Wire key components**
@@ -233,7 +233,7 @@ packages/
    - `TriageBoard.tsx` → run triage logic
    - `MapView.tsx` → embed or link to map server
 
-4. **Add package.json entry** for `@sankat-setu/triage` import
+4. **Add package.json entry** for `@deadzone/triage` import
 
 5. **Test end-to-end**
    - All 3 servers running (api, ai, dashboard)

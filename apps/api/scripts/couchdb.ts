@@ -28,7 +28,7 @@ export function getCouchConfig(): CouchConfig {
     port: Number(process.env.COUCHDB_PORT ?? 5984),
     user: process.env.COUCHDB_USER ?? "admin",
     password: process.env.COUCHDB_PASSWORD ?? "changeme",
-    dbName: process.env.COUCHDB_DB_NAME ?? "sankatsetu",
+    dbName: process.env.COUCHDB_DB_NAME ?? "deadzone",
   };
 }
 

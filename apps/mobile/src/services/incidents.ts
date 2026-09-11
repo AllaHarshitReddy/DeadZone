@@ -7,7 +7,7 @@
  * own store, no network.
  */
 
-import type { SOSRequest } from '@sankat-setu/schema';
+import type { SOSRequest } from '@deadzone/schema';
 import { getDatabase } from './pouchdb';
 import { triageSOSReport } from './triage';
 import type { NeedType, SOSIncident } from '../data/mockData';

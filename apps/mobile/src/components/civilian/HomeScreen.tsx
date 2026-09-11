@@ -320,7 +320,7 @@ export default function HomeScreen({
         }}
       >
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '17px', fontWeight: 600, color: '#E6EAF2' }}>
-          DeadZone SOS
+          DeadZone
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

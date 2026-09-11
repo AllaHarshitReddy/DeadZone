@@ -1,5 +1,5 @@
 {
-  "name": "@sankat-setu/comms",
+  "name": "@deadzone/comms",
   "version": "0.0.1",
   "private": true,
   "main": "./src/index.ts",
@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sankat-setu/schema": "workspace:*",
+    "@deadzone/schema": "workspace:*",
     "zod": "^4.5.4"
   },
   "devDependencies": {

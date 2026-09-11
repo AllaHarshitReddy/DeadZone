@@ -298,7 +298,7 @@ Example: `http://192.168.1.100:5173`
 
 ## Key Success Metrics (Pitch Focus)
 
-1. **Offline-First**: "When networks go down, Sankat Setu keeps rescue operations moving."
+1. **Offline-First**: "When networks go down, DeadZone keeps rescue operations moving."
    - ✅ Civilian can send SOS with no internet
    - ✅ Responder works with no CouchDB (local only)
    - ✅ Everything syncs when link returns

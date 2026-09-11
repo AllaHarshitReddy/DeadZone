@@ -6,11 +6,11 @@ Standing context for Claude Code on this repo. Read before any task.
 
 ## What this is
 
-**Sankat Setu** — an offline-first disaster response app for Smart India Hackathon 2026.
+**DeadZone** — an offline-first disaster response app for Smart India Hackathon 2026.
 
 Core claim: when cellular and internet fail, victims can still send an SOS, responders still coordinate, and everything syncs once a link returns.
 
-One-line pitch: *"When networks go down, Sankat Setu keeps rescue operations moving."*
+One-line pitch: *"When networks go down, DeadZone keeps rescue operations moving."*
 
 The narrative spine, used in the pitch, the demo order, and the build order:
 **COMMUNICATE → UNDERSTAND → PRIORITISE → COORDINATE → DELIVER**

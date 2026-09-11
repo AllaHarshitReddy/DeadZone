@@ -9,7 +9,7 @@ code supports. See CLAUDE.md, "Transport reality".
 
 ## Transport
 
-> Sankat Setu does not depend on any infrastructure it doesn't bring with it.
+> DeadZone does not depend on any infrastructure it doesn't bring with it.
 > The responder's laptop is a field command node running the coordination
 > server, the database, and the language model. It raises its own Wi-Fi
 > hotspot. Phones join that hotspot and open the app in a browser — no app

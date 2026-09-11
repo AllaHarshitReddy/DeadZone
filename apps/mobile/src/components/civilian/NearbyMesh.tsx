@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import TopBar from '../ui/TopBar';
 import { MeshClient } from '../../services/mesh';
 import { RESPONDER_CONFIG, getOrCreateDeviceId } from '../../config';
-import { PeerTable, type Peer } from '@sankat-setu/comms';
+import { PeerTable, type Peer } from '@deadzone/comms';
 
 interface Props {
   onBack: () => void;
