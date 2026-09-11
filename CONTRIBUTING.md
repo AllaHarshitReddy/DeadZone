@@ -1,4 +1,4 @@
-# Contributing to Sankat Setu
+# Contributing to DeadZone
 
 This project is built for Smart India Hackathon 2026 and is open source under the MIT License.
 

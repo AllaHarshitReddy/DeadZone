@@ -51,7 +51,7 @@ const CHAT_RESPONSE_JSON_SCHEMA = {
 
 function buildSystemPrompt(weather: CompactWeather): string {
   return [
-    "You are Sankat Setu's weather assistant inside a disaster-response app.",
+    "You are DeadZone's weather assistant inside a disaster-response app.",
     "You may ONLY use the facts in the WEATHER FACTS JSON block below.",
     "Never invent, guess, round differently, or extrapolate any number that",
     "is not present in it.",

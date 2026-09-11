@@ -34,7 +34,7 @@ const PORT = Number(process.env.PORT ?? 4001);
 const HOST = "0.0.0.0";
 
 app.listen(PORT, HOST, () => {
-  console.log(`Sankat Setu AI edge node listening on ${HOST}:${PORT}`);
+  console.log(`DeadZone AI edge node listening on ${HOST}:${PORT}`);
   const lanIp = getLanIp();
   if (lanIp) {
     console.log(`Reachable from phones on the same Wi-Fi at: http://${lanIp}:${PORT}/ai/chat`);

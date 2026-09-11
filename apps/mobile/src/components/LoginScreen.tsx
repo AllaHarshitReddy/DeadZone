@@ -331,7 +331,7 @@ export default function LoginScreen({ onEnter, onLanguage }: Props) {
           </div>
           <div>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 600, color: '#E6EAF2', lineHeight: 1 }}>
-              DeadZone SOS
+              DeadZone
             </div>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#4A5A78', marginTop: 2 }}>
               Emergency mesh network

@@ -1,8 +1,8 @@
-# Sankat Setu — Start all services in PowerShell
+# DeadZone — Start all services in PowerShell
 # This script opens separate windows for each service
 
 Write-Host "`n========================================" -ForegroundColor Green
-Write-Host "Sankat Setu Setup — Starting all services" -ForegroundColor Green
+Write-Host "DeadZone Setup — Starting all services" -ForegroundColor Green
 Write-Host "========================================`n" -ForegroundColor Green
 
 $projectRoot = "C:\Users\harsh\OneDrive\Desktop\Sanket Setu"

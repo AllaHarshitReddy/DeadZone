@@ -1,6 +1,6 @@
 # Architecture
 
-How Sankat Setu works, and why it's built this way.
+How DeadZone works, and why it's built this way.
 
 ---
 

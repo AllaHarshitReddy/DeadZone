@@ -1,4 +1,4 @@
-# Sankat Setu — UI/UX Design Brief
+# DeadZone — UI/UX Design Brief
 
 **For: designer (Figma) + frontend dev**
 **Deadline: designs needed by 8 September. Demo is 10 September.**

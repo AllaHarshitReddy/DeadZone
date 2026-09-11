@@ -1,4 +1,4 @@
-# Goals — Sankat Setu
+# Goals — DeadZone
 
 **The thing we're building and why it matters. Updated daily.**
 
@@ -8,7 +8,7 @@
 
 Build an offline-first disaster response platform that keeps rescue operations moving when cellular networks and internet fail. Demonstrate it working — end to end — with zero connectivity on 10 September 2026.
 
-**One-line pitch:** *"When networks go down, Sankat Setu keeps rescue operations moving."*
+**One-line pitch:** *"When networks go down, DeadZone keeps rescue operations moving."*
 
 **Narrative spine:** COMMUNICATE → UNDERSTAND → PRIORITISE → COORDINATE → DELIVER
 
@@ -157,7 +157,7 @@ The banner is the thing judges watch. Make it unmissable.
 
 ## Why this matters
 
-In 2026, when a flood takes down cell towers in a region, people trapped there have no way to call for help. Responders coordinating from the field have no way to share information. Sankat Setu solves that exact problem. It's not a theoretical project — it's a response to something that is happening right now in India.
+In 2026, when a flood takes down cell towers in a region, people trapped there have no way to call for help. Responders coordinating from the field have no way to share information. DeadZone solves that exact problem. It's not a theoretical project — it's a response to something that is happening right now in India.
 
 Build it to work. Build it to ship. Build it to save lives.
 

@@ -7,7 +7,7 @@ import { couchDbUrl, getCouchConfig, remotePouchDbOptions } from "../scripts/cou
 import { attachMeshServer } from "./mesh";
 
 /**
- * Sankat Setu coordination server. Runs on the responder's laptop,
+ * DeadZone coordination server. Runs on the responder's laptop,
  * co-located with the AI edge node (apps/ai). Handles:
  * - Local PouchDB for offline-first SOS storage
  * - WebSocket mesh at /mesh for LAN peer-to-peer messaging
@@ -77,7 +77,7 @@ async function main() {
   const HOST = "0.0.0.0";
 
   httpServer.listen(PORT, HOST, () => {
-    console.log(`Sankat Setu coordination server listening on ${HOST}:${PORT}`);
+    console.log(`DeadZone coordination server listening on ${HOST}:${PORT}`);
     console.log(`Reachable from phones at: ws://${lanIp}:${PORT}/mesh`);
     console.log(`Remote CouchDB: ${couchDbUrl(config)}`);
   });

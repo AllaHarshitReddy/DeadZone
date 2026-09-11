@@ -1,6 +1,6 @@
 {
   "version": 8,
-  "name": "Sankat Setu Offline — Bengaluru",
+  "name": "DeadZone Offline — Bengaluru",
   "metadata": {
     "deadzone:offline": true,
     "deadzone:note": "Every URL here is same-origin. Tiles, glyphs and sprites are served from data/tiles/. Nothing is fetched from the internet. Verified by apps/dashboard/scripts/verify-offline.js.",

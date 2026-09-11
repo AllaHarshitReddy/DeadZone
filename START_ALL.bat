@@ -1,10 +1,10 @@
 @echo off
-REM Sankat Setu — Start all services
+REM DeadZone — Start all services
 REM This script opens 5 new terminal windows, each running one service
 
 echo.
 echo ========================================
-echo Sankat Setu Setup — Starting all services
+echo DeadZone Setup — Starting all services
 echo ========================================
 echo.
 
